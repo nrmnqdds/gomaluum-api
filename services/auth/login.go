@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"strings"
 )
 
 func LoginUser(c *gin.Context, username string, password string) {
@@ -39,27 +38,17 @@ func LoginUser(c *gin.Context, username string, password string) {
 	defer resp.Body.Close()
 	newCook := append(cookies1, resp.Cookies()...)
 	client.Jar.SetCookies(urlObj, newCook)
-	// return client
 
 	cookies := client.Jar.Cookies(urlObj)
 
-	// filtered := filterMODAuthCAS(client.Jar.Cookies(urlObj)
-	filtered := filterMODAuthCAS(cookies)
-	// fmt.Println(filtered)fmt.Println(client.Jar.Cookies(urlObj))
-
-	c.JSON(http.StatusOK, gin.H{"cookies": client.Jar.Cookies(urlObj)})
-}
-
-func filterMODAuthCAS(arr []string) []string {
-	var result []string
-	for _, s := range arr {
-		parts := strings.Split(s, " ")
-		for _, part := range parts {
-			if strings.HasPrefix(part, "MOD_AUTH_CAS=") {
-				result = append(result, part)
-				break
-			}
+	for _, cookie := range cookies {
+		if cookie.Name == "MOD_AUTH_CAS" {
+			c.SetCookie(cookie.Name, cookie.Value, 3600, "/", "localhost", false, true)
+			c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
+			return
 		}
 	}
-	return result
+
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "Login failed"})
+
 }
