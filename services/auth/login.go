@@ -2,90 +2,53 @@ package auth
 
 import (
 	"fmt"
-	"net"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"time"
-
-	"github.com/gin-gonic/gin"
-	"golang.org/x/sync/errgroup"
-)
-
-var (
-	transport = &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
 )
 
 func LoginUser(c *gin.Context, username string, password string) {
 	fmt.Println("Running LoginUser")
 
+	formVal := url.Values{
+		"username":    {string(username)},
+		"password":    {string(password)},
+		"execution":   {"e1s1"},
+		"_eventId":    {"submit"},
+		"geolocation": {""},
+	}
 	jar, err := cookiejar.New(nil)
 	if err != nil {
+		// error handling
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	client := &http.Client{
-		Jar:       jar,
-		Transport: transport,
-		Timeout:   time.Second * 10,
+		Jar: jar,
 	}
 
-	urlObj, err := url.Parse("https://imaluum.iium.edu.my/")
+	urlObj, _ := url.Parse("https://imaluum.iium.edu.my/")
+	resp_first, err := client.Get("https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	fmt.Println("URL parsed", urlObj)
-
-	g, _ := errgroup.WithContext(c.Request.Context())
-
-	var resp_first *http.Response
-	g.Go(func() error {
-		var err error
-		resp_first, err = client.Get("https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome")
-		return err
-	})
-
-	if err := g.Wait(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
 	defer resp_first.Body.Close()
-
-	fmt.Println("Get request done")
+	fmt.Println("")
 
 	client.Jar.SetCookies(urlObj, resp_first.Cookies())
-
-	formVal := url.Values{
-		"username":    {username},
-		"password":    {password},
-		"execution":   {"e1s1"},
-		"_eventId":    {"submit"},
-		"geolocation": {""},
-	}
-
-	var resp *http.Response
-	g.Go(func() error {
-		var err error
-		resp, err = client.PostForm("https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", formVal)
-		return err
-	})
-
-	if err := g.Wait(); err != nil {
+	cookies1 := resp_first.Cookies()
+	resp, err := client.PostForm("https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", formVal)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer resp.Body.Close()
+
+	newCook := append(cookies1, resp.Cookies()...)
+	client.Jar.SetCookies(urlObj, newCook)
 
 	cookies := client.Jar.Cookies(urlObj)
 
@@ -98,4 +61,5 @@ func LoginUser(c *gin.Context, username string, password string) {
 	}
 
 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Login failed"})
+
 }
