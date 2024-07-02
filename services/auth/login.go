@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"strings"
 )
 
 func LoginUser(c *gin.Context, username string, password string) {
@@ -30,27 +31,40 @@ func LoginUser(c *gin.Context, username string, password string) {
 	}
 
 	urlObj, _ := url.Parse("https://imaluum.iium.edu.my/")
-	resp_first, err := client.Get("https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome")
+
+	// First request
+	req_first, _ := http.NewRequest("GET", "https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", nil)
+	req_first.Header.Set("Connection", "Keep-Alive")
+	req_first.Header.Set("Accept-Language", "en-US")
+	req_first.Header.Set("User-Agent", "Mozilla/5.0")
+
+	resp_first, err := client.Do(req_first)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer resp_first.Body.Close()
-	fmt.Println("")
 
 	client.Jar.SetCookies(urlObj, resp_first.Cookies())
-	cookies1 := resp_first.Cookies()
-	resp, err := client.PostForm("https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", formVal)
+	// cookies1 := resp_first.Cookies()
+
+	// Second request
+	req_second, _ := http.NewRequest("POST", "https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", strings.NewReader(formVal.Encode()))
+	req_second.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req_second.Header.Set("Connection", "Keep-Alive")
+	req_second.Header.Set("Accept-Language", "en-US")
+	req_second.Header.Set("User-Agent", "Mozilla/5.0")
+
+	resp, err := client.Do(req_second)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer resp.Body.Close()
 
-	newCook := append(cookies1, resp.Cookies()...)
-	client.Jar.SetCookies(urlObj, newCook)
-
 	cookies := client.Jar.Cookies(urlObj)
+	fmt.Println(cookies)
+	client.Jar.SetCookies(urlObj, cookies)
 
 	for _, cookie := range cookies {
 		if cookie.Name == "MOD_AUTH_CAS" {
