@@ -1,14 +1,20 @@
 package auth
 
 import (
-	"github.com/labstack/echo/v4"
+	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
+
+	"github.com/labstack/echo/v4"
+	"github.com/nrmnqdds/gomaluum-api/internal"
 )
 
 func LoginUser(c echo.Context) error {
+
+	tp := internal.NewTransport()
+
 	type LoginSchema struct {
 		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
@@ -32,7 +38,8 @@ func LoginUser(c echo.Context) error {
 	}
 
 	client := &http.Client{
-		Jar: jar,
+		Transport: tp,
+		Jar:       jar,
 	}
 
 	urlObj, _ := url.Parse("https://imaluum.iium.edu.my/")
@@ -74,6 +81,10 @@ func LoginUser(c echo.Context) error {
 			newcookie.Name = cookie.Name
 			newcookie.Value = cookie.Value
 			c.SetCookie(newcookie)
+
+			log.Println("Duration:", tp.Duration())
+			log.Println("Request duration:", tp.ReqDuration())
+			log.Println("Connection duration:", tp.ConnDuration())
 			return c.JSON(http.StatusOK, "Success")
 		}
 	}
