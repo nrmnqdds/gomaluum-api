@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/nrmnqdds/gomaluum-api/handlers/auth"
-	_ "github.com/nrmnqdds/gomaluum-api/handlers/scraper"
+	"github.com/nrmnqdds/gomaluum-api/handlers/scraper"
 	"net/http"
 )
 
@@ -15,6 +15,8 @@ func main() {
 	})
 
 	e.POST("/api/v1/login", auth.LoginUser)
+
+	e.GET("/api/v1/profile", scraper.ProfileScraper)
 
 	// e.GET("/api/v1/schedule", func(c *gin.Context) {
 	// 	cookie, err := c.Cookie("MOD_AUTH_CAS")
