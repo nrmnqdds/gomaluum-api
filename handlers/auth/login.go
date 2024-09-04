@@ -82,6 +82,7 @@ func LoginUser(c echo.Context) error {
 			newcookie.Value = cookie.Value
 			c.SetCookie(newcookie)
 
+			log.Println("====================================")
 			log.Println("Duration:", tp.Duration())
 			log.Println("Request duration:", tp.ReqDuration())
 			log.Println("Connection duration:", tp.ConnDuration())

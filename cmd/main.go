@@ -2,13 +2,24 @@ package main
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/nrmnqdds/gomaluum-api/handlers/auth"
 	"github.com/nrmnqdds/gomaluum-api/handlers/scraper"
+	slogecho "github.com/samber/slog-echo"
+	"log/slog"
 	"net/http"
+	"os"
 )
 
 func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	// Echo instance
 	e := echo.New()
+
+	// Middleware
+	e.Use(slogecho.New(logger))
+	e.Use(middleware.Recover())
 
 	e.GET("/ping", func(c echo.Context) error {
 		return c.String(http.StatusOK, "pong")
@@ -18,24 +29,7 @@ func main() {
 
 	e.GET("/api/v1/profile", scraper.ProfileScraper)
 
-	// e.GET("/api/v1/schedule", func(c *gin.Context) {
-	// 	cookie, err := c.Cookie("MOD_AUTH_CAS")
-	// 	if err != nil {
-	// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	// 		return
-	// 	}
-	//
-	// 	if cookie == "" {
-	// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Please login first"})
-	// 		return
-	// 	}
-	//
-	// 	scraper.ScheduleScraperService(cookie)
-	//
-	// 	c.JSON(http.StatusOK, gin.H{
-	// 		"message": "success",
-	// 	})
-	// })
+	e.GET("/api/v1/schedule", scraper.ScheduleScraper)
 
 	e.Logger.Fatal(e.Start(":1323"))
 }

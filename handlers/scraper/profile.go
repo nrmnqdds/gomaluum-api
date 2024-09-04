@@ -2,11 +2,12 @@ package scraper
 
 import (
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/gocolly/colly/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/nrmnqdds/gomaluum-api/internal"
-	"log"
-	"strings"
 )
 
 type Profile struct {
@@ -17,6 +18,10 @@ type Profile struct {
 
 func ProfileScraper(e echo.Context) error {
 	c := colly.NewCollector()
+
+	tp := internal.NewTransport()
+
+	c.WithTransport(tp)
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
 
@@ -30,16 +35,33 @@ func ProfileScraper(e echo.Context) error {
 	c.OnRequest(func(r *colly.Request) {
 		log.Println("Visiting", r.URL)
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookie.Value)
+		r.Headers.Set("User-Agent", internal.RandomString())
 	})
 
 	c.OnHTML("body", func(e *colly.HTMLElement) {
 		_name := e.ChildText(".row .col-md-12 .box.box-default .panel-body.row .col-md-4[style='text-align:center; padding:10px; floaf:left;'] h4[style='margin-top:1%;']")
-		log.Println("_name: ", _name)
 		profile.name = strings.TrimSpace(_name)
 
-		_matricNo := e.ChildText(".row .col-md-12 .box.box-default .panel-body.row .col-md-4[style='margin-top:1%;'] h4")
-		log.Println("_matricNo: ", _matricNo)
+		_matricNo := e.ChildText(".row .col-md-12 .box.box-default .panel-body.row .col-md-4[style='margin-top:3%;'] h4")
 		profile.matricNo = strings.TrimSpace(strings.Split(strings.TrimSpace(_matricNo), "|")[0])
+	})
+
+	c.OnScraped(func(r *colly.Response) {
+		log.Println("====================================")
+		log.Println("Duration:", tp.Duration())
+		log.Println("Request duration:", tp.ReqDuration())
+		log.Println("Connection duration:", tp.ConnDuration())
+	})
+
+	c.OnError(func(r *colly.Response, err error) {
+		log.Println("====================================")
+		log.Println("Error:", err)
+
+		log.Println("Duration:", tp.Duration())
+		log.Println("Request duration:", tp.ReqDuration())
+		log.Println("Connection duration:", tp.ConnDuration())
+
+		return
 	})
 
 	c.Visit(internal.IMALUUM_PROFILE_PAGE)
@@ -51,5 +73,4 @@ func ProfileScraper(e echo.Context) error {
 		"name":     profile.name,
 		"matricNo": profile.matricNo,
 	})
-
 }
