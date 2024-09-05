@@ -3,8 +3,7 @@ package main
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/nrmnqdds/gomaluum-api/handlers/auth"
-	"github.com/nrmnqdds/gomaluum-api/handlers/scraper"
+	"github.com/nrmnqdds/gomaluum-api/controllers"
 	slogecho "github.com/samber/slog-echo"
 	"log/slog"
 	"net/http"
@@ -25,11 +24,11 @@ func main() {
 		return c.String(http.StatusOK, "pong")
 	})
 
-	e.POST("/api/v1/login", auth.LoginUser)
+	e.POST("/api/v1/login", controllers.LoginHandler)
 
-	e.GET("/api/v1/profile", scraper.ProfileScraper)
+	e.GET("/api/v1/profile", controllers.GetProfileHandler)
 
-	e.GET("/api/v1/schedule", scraper.ScheduleScraper)
+	e.GET("/api/v1/schedule", controllers.GetScheduleHandler)
 
 	e.Logger.Fatal(e.Start(":1323"))
 }

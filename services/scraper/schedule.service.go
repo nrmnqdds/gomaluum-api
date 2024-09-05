@@ -2,39 +2,58 @@ package scraper
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"sync"
+
 	"github.com/gocolly/colly/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/lucsky/cuid"
+	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/internal"
-	"log"
-	"strings"
 )
 
-func ScheduleScraper(e echo.Context) error {
+type WeekTime struct {
+	Start string `json:"start"`
+	End   string `json:"end"`
+	Day   uint8  `json:"day"`
+}
+
+type Subject struct {
+	SessionName string     `json:"session_name"`
+	Id          string     `json:"id"`
+	CourseCode  string     `json:"course_code"`
+	CourseName  string     `json:"course_name"`
+	Section     uint8      `json:"section"`
+	Chr         uint8      `json:"chr"`
+	Timestamps  []WeekTime `json:"timestamps"`
+	Venue       string     `json:"venue"`
+	Lecturer    string     `json:"lecturer"`
+}
+
+type ScheduleResponse struct {
+	SessionName  string     `json:"session_name"`
+	SessionQuery string     `json:"session_query"`
+	Schedule     []*Subject `json:"schedule"`
+}
+
+func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 	fmt.Println("Running ScheduleScraperService")
 	c := colly.NewCollector()
 
-	tp := internal.NewTransport()
-
-	c.WithTransport(tp)
-
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
-
 	if err != nil {
-		fmt.Println(err)
-		return e.JSON(400, map[string]string{"error": err.Error()})
+		return nil, dtos.ErrUnauthorized
 	}
 
 	c.OnRequest(func(r *colly.Request) {
-		log.Println("Visiting", r.URL)
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookie.Value)
 		r.Headers.Set("User-Agent", internal.RandomString())
 	})
 
-	schedule := []Subject{}
+	schedule := []*ScheduleResponse{}
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
-
 		type Session struct {
 			sessionName  string
 			sessionQuery string
@@ -50,77 +69,58 @@ func ScheduleScraper(e echo.Context) error {
 		})
 
 		for _, session := range sessionList {
-			schedule := getScheduleFromSession(session.sessionQuery, session.sessionName, cookie.Value)
+			_schedule, err := getScheduleFromSession(session.sessionQuery, session.sessionName, cookie.Value)
+			if err != nil {
+				return
+			}
 
-			schedule = append(schedule, schedule...)
+			schedule = append(schedule, &ScheduleResponse{
+				SessionName:  session.sessionName,
+				SessionQuery: session.sessionQuery,
+				Schedule:     _schedule,
+			})
 		}
-	})
-
-	c.OnScraped(func(r *colly.Response) {
-		log.Println("====================================")
-		log.Println("Duration:", tp.Duration())
-		log.Println("Request duration:", tp.ReqDuration())
-		log.Println("Connection duration:", tp.ConnDuration())
-	})
-
-	c.OnError(func(r *colly.Response, err error) {
-		log.Println("====================================")
-		log.Println("Error:", err)
-
-		log.Println("Duration:", tp.Duration())
-		log.Println("Request duration:", tp.ReqDuration())
-		log.Println("Connection duration:", tp.ConnDuration())
-
-		return
 	})
 
 	c.Visit(internal.IMALUUM_SCHEDULE_PAGE)
 
-	return e.JSON(200, schedule)
+	return schedule, nil
 }
 
-type WeekTime struct {
-	start string
-	end   string
-	day   int32
-}
-
-type Subject struct {
-	sessionName string
-	id          string
-	courseCode  string
-	courseName  string
-	section     string
-	chr         string
-	timestamps  []WeekTime
-	venue       string
-	lecturer    string
-}
-
-type ScheduleResponse struct {
-	SessionName  string    `json:"session_name"`
-	SessionQuery string    `json:"session_query"`
-	Schedule     []Subject `json:"schedule"`
-}
-
-func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue string) []Subject {
+func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue string) ([]*Subject, *dtos.CustomError) {
 	c := colly.NewCollector()
 
 	c.OnRequest(func(r *colly.Request) {
-		log.Println("Visiting", r.URL)
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookieValue)
 		r.Headers.Set("User-Agent", internal.RandomString())
 	})
 
 	url := internal.IMALUUM_SCHEDULE_PAGE + sessionQuery
 
-	var schedule []Subject
+	schedule := []*Subject{}
+
+	var wg sync.WaitGroup
+	scheduleChan := make(chan *ScheduleResponse)
+
+	// Using a separate goroutine to collect schedules
+	go func() {
+		var schedule []*ScheduleResponse
+		for resp := range scheduleChan {
+			schedule = append(schedule, resp)
+		}
+		wg.Wait() // Wait for all scraping to complete
+		close(scheduleChan)
+	}()
 
 	c.OnHTML(".box-body table.table.table-hover", func(e *colly.HTMLElement) {
 		e.ForEach("tr", func(i int, element *colly.HTMLElement) {
 			tds := element.ChildTexts("td")
 
+			days := []uint8{}
+			weekTime := []WeekTime{}
+
 			if len(tds) == 0 {
+				// Skip the first row
 				return
 			}
 
@@ -128,12 +128,17 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 
 				courseCode := strings.TrimSpace(tds[0])
 				courseName := strings.TrimSpace(tds[1])
-				section := strings.TrimSpace(tds[2])
-				chr := strings.TrimSpace(tds[3])
+				section, err := strconv.Atoi(strings.TrimSpace(tds[2]))
+				if err != nil {
+					return
+				}
+
+				chr, err := strconv.Atoi(strings.TrimSpace(tds[3]))
+				if err != nil {
+					return
+				}
 
 				_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
-
-				var days []int32
 
 				for _, day := range _days {
 					if strings.Contains(day, "SUN") {
@@ -153,8 +158,6 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 					}
 				}
 
-				var weekTime []WeekTime
-
 				for _, day := range days {
 
 					timeTemp := tds[6]
@@ -168,37 +171,35 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 					end := strings.TrimSpace(time[1])
 
 					weekTime = append(weekTime, WeekTime{
-						start: start,
-						end:   end,
-						day:   day,
+						Start: start,
+						End:   end,
+						Day:   day,
 					})
 				}
 
 				venue := strings.TrimSpace(tds[7])
 				lecturer := strings.TrimSpace(tds[8])
 
-				schedule = append(schedule, Subject{
-					sessionName: sessionName,
-					id:          cuid.New(),
-					courseCode:  courseCode,
-					courseName:  courseName,
-					section:     section,
-					chr:         chr,
-					timestamps:  weekTime,
-					venue:       venue,
-					lecturer:    lecturer,
+				schedule = append(schedule, &Subject{
+					SessionName: sessionName,
+					Id:          cuid.New(),
+					CourseCode:  courseCode,
+					CourseName:  courseName,
+					Section:     uint8(section),
+					Chr:         uint8(chr),
+					Timestamps:  weekTime,
+					Venue:       venue,
+					Lecturer:    lecturer,
 				})
 			}
 
 			if len(tds) == 4 {
-				courseCode := schedule[len(schedule)-1].courseCode
-				courseName := schedule[len(schedule)-1].courseName
-				section := schedule[len(schedule)-1].section
-				chr := schedule[len(schedule)-1].chr
+				courseCode := schedule[len(schedule)-1].CourseCode
+				courseName := schedule[len(schedule)-1].CourseName
+				section := schedule[len(schedule)-1].Section
+				chr := schedule[len(schedule)-1].Chr
 
 				_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
-
-				var days []int32
 
 				for _, day := range _days {
 					if strings.Contains(day, "SUN") {
@@ -218,8 +219,6 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 					}
 				}
 
-				var weekTime []WeekTime
-
 				for _, day := range days {
 
 					timeTemp := tds[6]
@@ -233,25 +232,25 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 					end := strings.TrimSpace(time[1])
 
 					weekTime = append(weekTime, WeekTime{
-						start: start,
-						end:   end,
-						day:   day,
+						Start: start,
+						End:   end,
+						Day:   day,
 					})
 				}
 
 				venue := strings.TrimSpace(tds[7])
 				lecturer := strings.TrimSpace(tds[8])
 
-				schedule = append(schedule, Subject{
-					sessionName: sessionName,
-					id:          cuid.Slug(),
-					courseCode:  courseCode,
-					courseName:  courseName,
-					section:     section,
-					chr:         chr,
-					timestamps:  weekTime,
-					venue:       venue,
-					lecturer:    lecturer,
+				schedule = append(schedule, &Subject{
+					SessionName: sessionName,
+					Id:          cuid.Slug(),
+					CourseCode:  courseCode,
+					CourseName:  courseName,
+					Section:     section,
+					Chr:         chr,
+					Timestamps:  weekTime,
+					Venue:       venue,
+					Lecturer:    lecturer,
 				})
 
 			}
@@ -260,6 +259,5 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 
 	c.Visit(url)
 
-	return schedule
-
+	return schedule, nil
 }

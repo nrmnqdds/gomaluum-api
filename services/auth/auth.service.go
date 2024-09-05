@@ -1,44 +1,29 @@
 package auth
 
 import (
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
 
-	"github.com/labstack/echo/v4"
-	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/nrmnqdds/gomaluum-api/dtos"
 )
 
-func LoginUser(c echo.Context) error {
-
-	tp := internal.NewTransport()
-
-	type LoginSchema struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
-
-	u := new(LoginSchema)
-	if err := c.Bind(u); err != nil {
-		return err
-	}
-
+func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) {
 	formVal := url.Values{
-		"username":    {string(u.Username)},
-		"password":    {string(u.Password)},
+		"username":    {string(user.Username)},
+		"password":    {string(user.Password)},
 		"execution":   {"e1s1"},
 		"_eventId":    {"submit"},
 		"geolocation": {""},
 	}
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, "Failed to initialize cookiejar!")
+		return nil, dtos.ErrFailedToInitCookieJar
 	}
 
 	client := &http.Client{
-		Transport: tp,
+		// Transport: tp,
 		Jar:       jar,
 	}
 
@@ -52,7 +37,7 @@ func LoginUser(c echo.Context) error {
 
 	resp_first, err := client.Do(req_first)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, "Failed to send first request!")
+		return nil, dtos.ErrFailedToLogin
 	}
 	defer resp_first.Body.Close()
 
@@ -67,28 +52,21 @@ func LoginUser(c echo.Context) error {
 
 	resp, err := client.Do(req_second)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, "Failed to send second request!")
+		return nil, dtos.ErrFailedToLogin
 	}
 	defer resp.Body.Close()
 
 	cookies := client.Jar.Cookies(urlObj)
 	client.Jar.SetCookies(urlObj, cookies)
 
-	newcookie := new(http.Cookie)
-
 	for _, cookie := range cookies {
 		if cookie.Name == "MOD_AUTH_CAS" {
-			newcookie.Name = cookie.Name
-			newcookie.Value = cookie.Value
-			c.SetCookie(newcookie)
-
-			log.Println("====================================")
-			log.Println("Duration:", tp.Duration())
-			log.Println("Request duration:", tp.ReqDuration())
-			log.Println("Connection duration:", tp.ConnDuration())
-			return c.JSON(http.StatusOK, "Success")
+			return &dtos.LoginResponseDTO{
+				Username: user.Username,
+				Token:    cookie.Value,
+			}, nil
 		}
 	}
 
-	return c.JSON(http.StatusInternalServerError, "Failed to login!")
+	return nil, dtos.ErrInternalServerError
 }
