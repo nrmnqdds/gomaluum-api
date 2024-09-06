@@ -58,7 +58,7 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 		for resp := range scheduleChan {
 			schedule = append(schedule, resp)
 		}
-    wg.Done()
+		wg.Done()
 	}()
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
@@ -67,7 +67,7 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 			sessionQuery string
 		}
 
-    sessionList := []Session{}
+		sessionList := []Session{}
 
 		e.ForEach("a", func(i int, element *colly.HTMLElement) {
 			sessionList = append(sessionList, Session{
@@ -93,7 +93,9 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 		}
 	})
 
-	c.Visit(internal.IMALUUM_SCHEDULE_PAGE)
+	if err := c.Visit(internal.IMALUUM_SCHEDULE_PAGE); err != nil {
+		return nil, dtos.ErrFailedToGoToURL
+	}
 
 	wg.Wait()
 	close(scheduleChan)
@@ -258,7 +260,9 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 		})
 	})
 
-	c.Visit(url)
+	if err := c.Visit(url); err != nil {
+		return nil, dtos.ErrFailedToGoToURL
+	}
 
 	return schedule, nil
 }

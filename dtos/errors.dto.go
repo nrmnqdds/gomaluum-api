@@ -41,4 +41,9 @@ var (
 		StatusCode: 500,
 		Message:    "Selectors not found!",
 	}
+
+	ErrFailedToGoToURL = &CustomError{
+		StatusCode: 500,
+		Message:    "Failed to go to URL!",
+	}
 )

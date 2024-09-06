@@ -1,23 +1,33 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/nrmnqdds/gomaluum-api/controllers"
-	slogecho "github.com/samber/slog-echo"
-	"log/slog"
-	"net/http"
-	"os"
+	"go.uber.org/zap"
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-
-	// Echo instance
 	e := echo.New()
 
-	// Middleware
-	e.Use(slogecho.New(logger))
+	logger, _ := zap.NewProduction()
+
+	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogURI:    true,
+		LogStatus: true,
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			logger.Info("request",
+				zap.String("URI", v.URI),
+				zap.Int("status", v.Status),
+			)
+
+			return nil
+		},
+	}))
+
+	// This middleware is used to recover from panics anywhere in the chain, log the panic (and a stack trace), and set a status code of 500.
 	e.Use(middleware.Recover())
 
 	e.GET("/ping", func(c echo.Context) error {
