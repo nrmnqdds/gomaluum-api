@@ -51,7 +51,16 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 		r.Headers.Set("User-Agent", internal.RandomString())
 	})
 
+	var wg sync.WaitGroup
+	scheduleChan := make(chan *ScheduleResponse)
 	schedule := []*ScheduleResponse{}
+
+	// Goroutine to collect the results from the channel
+	go func() {
+		for resp := range scheduleChan {
+			schedule = append(schedule, resp)
+		}
+	}()
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
 		type Session struct {
@@ -69,20 +78,27 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 		})
 
 		for _, session := range sessionList {
-			_schedule, err := getScheduleFromSession(session.sessionQuery, session.sessionName, cookie.Value)
-			if err != nil {
-				return
-			}
+			wg.Add(1) // Add to the WaitGroup
+			go func(session Session) {
+				defer wg.Done()
+				_schedule, err := getScheduleFromSession(session.sessionQuery, session.sessionName, cookie.Value)
+				if err != nil {
+					return
+				}
 
-			schedule = append(schedule, &ScheduleResponse{
-				SessionName:  session.sessionName,
-				SessionQuery: session.sessionQuery,
-				Schedule:     _schedule,
-			})
+				scheduleChan <- &ScheduleResponse{
+					SessionName:  session.sessionName,
+					SessionQuery: session.sessionQuery,
+					Schedule:     _schedule,
+				}
+			}(session)
 		}
 	})
 
 	c.Visit(internal.IMALUUM_SCHEDULE_PAGE)
+
+	wg.Wait()
+	close(scheduleChan)
 
 	return schedule, nil
 }
@@ -98,19 +114,6 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 	url := internal.IMALUUM_SCHEDULE_PAGE + sessionQuery
 
 	schedule := []*Subject{}
-
-	var wg sync.WaitGroup
-	scheduleChan := make(chan *ScheduleResponse)
-
-	// Using a separate goroutine to collect schedules
-	go func() {
-		var schedule []*ScheduleResponse
-		for resp := range scheduleChan {
-			schedule = append(schedule, resp)
-		}
-		wg.Wait() // Wait for all scraping to complete
-		close(scheduleChan)
-	}()
 
 	c.OnHTML(".box-body table.table.table-hover", func(e *colly.HTMLElement) {
 		e.ForEach("tr", func(i int, element *colly.HTMLElement) {
