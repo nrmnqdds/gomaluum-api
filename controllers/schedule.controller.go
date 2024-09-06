@@ -23,7 +23,7 @@ func GetScheduleHandler(c echo.Context) error {
 	response := dtos.Response{
 		Status:  http.StatusOK,
 		Message: "Successfully get user schedule!",
-		Data:    &echo.Map{"data": data},
+		Data:    &echo.Map{"schedule": data},
 	}
 
 	return c.JSON(http.StatusCreated, response)

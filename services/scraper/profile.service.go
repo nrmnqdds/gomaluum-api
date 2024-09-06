@@ -11,9 +11,9 @@ import (
 )
 
 type Profile struct {
-  ImageURL string `json:"image_url"`
-  Name     string `json:"name"`
-  MatricNo string `json:"matric_no"`
+	ImageURL string `json:"image_url"`
+	Name     string `json:"name"`
+	MatricNo string `json:"matric_no"`
 }
 
 func ProfileScraper(e echo.Context) (*Profile, *dtos.CustomError) {
@@ -40,7 +40,9 @@ func ProfileScraper(e echo.Context) (*Profile, *dtos.CustomError) {
 		profile.MatricNo = strings.TrimSpace(strings.Split(strings.TrimSpace(_matricNo), "|")[0])
 	})
 
-	c.Visit(internal.IMALUUM_PROFILE_PAGE)
+	if err := c.Visit(internal.IMALUUM_PROFILE_PAGE); err != nil {
+		return nil, dtos.ErrInternalServerError
+	}
 
 	profile.ImageURL = fmt.Sprintf("https://smartcard.iium.edu.my/packages/card/printing/camera/uploads/original/%s.jpeg", profile.MatricNo)
 

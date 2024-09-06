@@ -1,7 +1,6 @@
 package scraper
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -38,7 +37,6 @@ type ScheduleResponse struct {
 }
 
 func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
-	fmt.Println("Running ScheduleScraperService")
 	c := colly.NewCollector()
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
@@ -60,6 +58,7 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 		for resp := range scheduleChan {
 			schedule = append(schedule, resp)
 		}
+    wg.Done()
 	}()
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
@@ -68,7 +67,7 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 			sessionQuery string
 		}
 
-		var sessionList []Session
+    sessionList := []Session{}
 
 		e.ForEach("a", func(i int, element *colly.HTMLElement) {
 			sessionList = append(sessionList, Session{
@@ -77,10 +76,9 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 			})
 		})
 
+		wg.Add(len(sessionList)) // Add to the WaitGroup
 		for _, session := range sessionList {
-			wg.Add(1) // Add to the WaitGroup
 			go func(session Session) {
-				defer wg.Done()
 				_schedule, err := getScheduleFromSession(session.sessionQuery, session.sessionName, cookie.Value)
 				if err != nil {
 					return
