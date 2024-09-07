@@ -3,7 +3,6 @@ package scraper
 import (
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/gocolly/colly/v2"
 	"github.com/labstack/echo/v4"
@@ -39,6 +38,11 @@ type ScheduleResponse struct {
 func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 	c := colly.NewCollector()
 
+	c.Limit(&colly.LimitRule{
+		DomainGlob:  "*",
+		Parallelism: 10,
+	})
+
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
 	if err != nil {
 		return nil, dtos.ErrUnauthorized
@@ -49,17 +53,7 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 		r.Headers.Set("User-Agent", internal.RandomString())
 	})
 
-	var wg sync.WaitGroup
-	scheduleChan := make(chan *ScheduleResponse)
 	schedule := []*ScheduleResponse{}
-
-	// Goroutine to collect the results from the channel
-	go func() {
-		for resp := range scheduleChan {
-			schedule = append(schedule, resp)
-		}
-		wg.Done()
-	}()
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
 		type Session struct {
@@ -76,20 +70,18 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 			})
 		})
 
-		wg.Add(len(sessionList)) // Add to the WaitGroup
 		for _, session := range sessionList {
-			go func(session Session) {
-				_schedule, err := getScheduleFromSession(session.sessionQuery, session.sessionName, cookie.Value)
-				if err != nil {
-					return
-				}
+			_schedule, err := getScheduleFromSession(session.sessionQuery, session.sessionName, cookie.Value)
+			if err != nil {
+				return
+			}
 
-				scheduleChan <- &ScheduleResponse{
-					SessionName:  session.sessionName,
-					SessionQuery: session.sessionQuery,
-					Schedule:     _schedule,
-				}
-			}(session)
+			schedule = append(schedule, &ScheduleResponse{
+				SessionName:  session.sessionName,
+				SessionQuery: session.sessionQuery,
+				Schedule:     _schedule,
+			})
+
 		}
 	})
 
@@ -97,14 +89,16 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
-	wg.Wait()
-	close(scheduleChan)
-
 	return schedule, nil
 }
 
 func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue string) ([]*Subject, *dtos.CustomError) {
 	c := colly.NewCollector()
+
+	c.Limit(&colly.LimitRule{
+		DomainGlob:  "*",
+		Parallelism: 10,
+	})
 
 	c.OnRequest(func(r *colly.Request) {
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookieValue)
