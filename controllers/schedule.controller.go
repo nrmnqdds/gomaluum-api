@@ -9,6 +9,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// @Title GetScheduleHandler
+// @Description Get schedule from i-Ma'luum
+// @Tags scraper
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /api/schedule [post]
 func GetScheduleHandler(c echo.Context) error {
 	data, err := scraper.ScheduleScraper(c)
 	if err != nil {

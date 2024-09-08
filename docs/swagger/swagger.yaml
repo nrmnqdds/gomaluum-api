@@ -1,0 +1,50 @@
+definitions:
+  dtos.LoginDTO:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+info:
+  contact: {}
+paths:
+  /api/login:
+    post:
+      consumes:
+      - application/json
+      description: Login to i-Ma'luum
+      parameters:
+      - description: User object
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.LoginDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - login
+  /api/schedule:
+    post:
+      description: Get schedule from i-Ma'luum
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - scraper
+swagger: "2.0"

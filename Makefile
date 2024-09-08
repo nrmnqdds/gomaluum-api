@@ -6,3 +6,6 @@ benchmark:
 
 lint:
 	golangci-lint run
+
+swagger:
+	swag init --parseDependency --parseInternal -g ./cmd/main.go -o ./docs/swagger

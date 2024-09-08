@@ -10,6 +10,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// @Title LoginHandler
+// @Description Login to i-Ma'luum
+// @Tags login
+// @Accept json
+// @Produce json
+// @Param user body dtos.LoginDTO true "User object"
+// @Success 200 {object} map[string]interface{}
+// @Router /api/login [post]
 func LoginHandler(c echo.Context) error {
 	user := dtos.LoginDTO{}
 
