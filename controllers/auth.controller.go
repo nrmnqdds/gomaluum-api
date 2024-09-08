@@ -52,7 +52,7 @@ func LoginHandler(c echo.Context) error {
 			Message: err.Message,
 			Data:    nil,
 		}
-		logger.Error("Invalid request payload!", err)
+		logger.Error(err)
 		return c.JSON(http.StatusInternalServerError, response)
 	}
 

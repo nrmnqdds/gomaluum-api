@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/nrmnqdds/gomaluum-api/dtos"
+	"github.com/nrmnqdds/gomaluum-api/internal"
 	"github.com/nrmnqdds/gomaluum-api/services/scraper"
 
 	"github.com/labstack/echo/v4"
@@ -17,12 +18,16 @@ import (
 // @Router /api/schedule [get]
 func GetScheduleHandler(c echo.Context) error {
 	data, err := scraper.ScheduleScraper(c)
+
+	logger := internal.NewLogger()
+
 	if err != nil {
 		response := dtos.Response{
 			Status:  err.StatusCode,
 			Message: err.Message,
 			Data:    nil,
 		}
+    logger.Error(err)
 		return c.JSON(http.StatusInternalServerError, response)
 	}
 
