@@ -8,7 +8,6 @@ import (
 	"github.com/nrmnqdds/gomaluum-api/controllers"
 	_ "github.com/nrmnqdds/gomaluum-api/docs/swagger"
 	echoSwagger "github.com/swaggo/echo-swagger"
-	"go.uber.org/zap"
 )
 
 // @title Gomaluum API
@@ -17,19 +16,9 @@ import (
 func main() {
 	e := echo.New()
 
-	logger, _ := zap.NewProduction()
-
-	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
-		LogURI:    true,
-		LogStatus: true,
-		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			logger.Info("request",
-				zap.String("URI", v.URI),
-				zap.Int("status", v.Status),
-			)
-
-			return nil
-		},
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "[${time_rfc3339}] ${status} ${method} ${path} (${remote_ip}) ${latency_human}\n",
+		Output: e.Logger.Output(),
 	}))
 
 	// This middleware is used to recover from panics anywhere in the chain, log the panic (and a stack trace), and set a status code of 500.
