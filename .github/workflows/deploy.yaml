@@ -43,5 +43,5 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             docker login ghcr.io -u nrmnqdds -p ${{ secrets.GHCR_TOKEN }}
-            compose up --force-recreate --build -d gomaluum
+            docker compose up --force-recreate --build -d gomaluum
             docker system prune -a -f
