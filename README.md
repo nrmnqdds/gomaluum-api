@@ -20,6 +20,8 @@ Support this project!
 <!--A backend REST API for my infamous [Simplified i-Ma'luum](https://github.com/nrmnqdds/simplified-imaluum). Aims to improvise the performance of the scraper as Next.js server actions didn't do well in bulk parallel fetching.-->
 A Reimplementation of the infamous [Simplified i-Ma'luum](https://imaluum.nrmnqdds.com) API in Go.
 
+Swagger API documentation is available at [here](https://api.imaluum.nrmnqdds.com/swagger/index.html).
+
 ## Features
 - [x] **Go** implementation
 - [x] **Goroutine** for improved performance

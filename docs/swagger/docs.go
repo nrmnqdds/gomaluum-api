@@ -50,7 +50,7 @@ const docTemplate = `{
             }
         },
         "/api/schedule": {
-            "post": {
+            "get": {
                 "description": "Get schedule from i-Ma'luum",
                 "produces": [
                     "application/json"
@@ -91,12 +91,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
+	Version:          "1.0",
 	Host:             "",
 	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Title:            "Gomaluum API",
+	Description:      "This is a simple API for Gomaluum project.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

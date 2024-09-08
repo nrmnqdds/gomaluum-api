@@ -14,7 +14,7 @@ import (
 // @Tags scraper
 // @Produce json
 // @Success 200 {object} map[string]interface{}
-// @Router /api/schedule [post]
+// @Router /api/schedule [get]
 func GetScheduleHandler(c echo.Context) error {
 	data, err := scraper.ScheduleScraper(c)
 	if err != nil {

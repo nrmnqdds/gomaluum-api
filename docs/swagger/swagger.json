@@ -1,7 +1,10 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "description": "This is a simple API for Gomaluum project.",
+        "title": "Gomaluum API",
+        "contact": {},
+        "version": "1.0"
     },
     "paths": {
         "/api/login": {
@@ -39,7 +42,7 @@
             }
         },
         "/api/schedule": {
-            "post": {
+            "get": {
                 "description": "Get schedule from i-Ma'luum",
                 "produces": [
                     "application/json"
