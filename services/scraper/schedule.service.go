@@ -31,11 +31,6 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 	})
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
-		type Session struct {
-			sessionName  string
-			sessionQuery string
-		}
-
 		e.ForEach("a", func(i int, element *colly.HTMLElement) {
 			wg.Add(1)
 			go getScheduleFromSession(c, element.Attr("href"), element.Text, cookie.Value, &wg, scheduleChan)
