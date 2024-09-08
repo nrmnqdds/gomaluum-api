@@ -1,4 +1,6 @@
 FROM golang:1.22-alpine AS build
+LABEL org.opencontainers.image.source=https://github.com/nrmnqdds/gomaluum-api
+
 WORKDIR /app
 
 COPY go.mod go.sum ./

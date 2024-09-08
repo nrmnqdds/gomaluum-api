@@ -1,0 +1,10 @@
+services:
+  gomaluum:
+    container_name: 'gomaluum'
+    image: 'ghcr.io/nrmnqdds/gomaluum:latest'
+    ports:
+      - '1323:1323'
+    restart: 'always'
+    deploy:
+      mode: replicated
+      replicas: 3
