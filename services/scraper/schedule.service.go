@@ -1,8 +1,11 @@
 package scraper
 
 import (
+	"encoding/json"
+	"log"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/gocolly/colly/v2"
 	"github.com/labstack/echo/v4"
@@ -11,37 +14,20 @@ import (
 	"github.com/nrmnqdds/gomaluum-api/internal"
 )
 
-type WeekTime struct {
-	Start string `json:"start"`
-	End   string `json:"end"`
-	Day   uint8  `json:"day"`
-}
+func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
+	c := colly.NewCollector(
+		colly.Async(true),
+	)
 
-type Subject struct {
-	SessionName string     `json:"session_name"`
-	Id          string     `json:"id"`
-	CourseCode  string     `json:"course_code"`
-	CourseName  string     `json:"course_name"`
-	Section     uint8      `json:"section"`
-	Chr         uint8      `json:"chr"`
-	Timestamps  []WeekTime `json:"timestamps"`
-	Venue       string     `json:"venue"`
-	Lecturer    string     `json:"lecturer"`
-}
+	// c.Limit(&colly.LimitRule{
+	// 	DomainGlob: "*",
+	// 	Parallelism: 2,
+	// })
 
-type ScheduleResponse struct {
-	SessionName  string     `json:"session_name"`
-	SessionQuery string     `json:"session_query"`
-	Schedule     []*Subject `json:"schedule"`
-}
-
-func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
-	c := colly.NewCollector()
-
-	c.Limit(&colly.LimitRule{
-		DomainGlob:  "*",
-		Parallelism: 10,
-	})
+	var wg sync.WaitGroup
+	scheduleChan := make(chan dtos.ScheduleResponse)
+	schedule := []dtos.ScheduleResponse{}
+	var mu sync.Mutex
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
 	if err != nil {
@@ -52,8 +38,6 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookie.Value)
 		r.Headers.Set("User-Agent", internal.RandomString())
 	})
-
-	schedule := []*ScheduleResponse{}
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
 		type Session struct {
@@ -71,17 +55,35 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 		})
 
 		for _, session := range sessionList {
-			_schedule, err := getScheduleFromSession(session.sessionQuery, session.sessionName, cookie.Value)
-			if err != nil {
-				return
-			}
+			wg.Add(1)
 
-			schedule = append(schedule, &ScheduleResponse{
-				SessionName:  session.sessionName,
-				SessionQuery: session.sessionQuery,
-				Schedule:     _schedule,
-			})
+			go func(session Session) {
+				// defer wg.Done()
 
+				mu.Lock()
+
+				_schedule, err := getScheduleFromSession(c, session.sessionQuery, session.sessionName, cookie.Value)
+				if err != nil {
+					return
+				}
+
+				if len(_schedule) != 0 {
+					unmarshaled, err := json.Marshal(_schedule)
+					if err != nil {
+						log.Println("failed to marshal schedule")
+					}
+					log.Println("_schedule: ", string(unmarshaled))
+					scheduleChan <- dtos.ScheduleResponse{
+						SessionName:  session.sessionName,
+						SessionQuery: session.sessionQuery,
+						Schedule:     _schedule,
+					}
+
+					mu.Unlock()
+					wg.Done()
+					return
+				}
+			}(session)
 		}
 	})
 
@@ -89,32 +91,39 @@ func ScheduleScraper(e echo.Context) ([]*ScheduleResponse, *dtos.CustomError) {
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
+	// Goroutine to collect the results from the channel
+	go func() {
+		for resp := range scheduleChan {
+			unmarshaled, err := json.Marshal(resp)
+			if err != nil {
+				log.Println("failed to marshal schedule")
+			}
+			log.Println("resp: ", string(unmarshaled))
+			schedule = append(schedule, resp)
+		}
+	}()
+
+	wg.Wait()
+	close(scheduleChan)
+
+	c.Wait()
+
+	log.Println("returned schedule: ", schedule)
+
 	return schedule, nil
 }
 
-func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue string) ([]*Subject, *dtos.CustomError) {
-	c := colly.NewCollector()
-
-	c.Limit(&colly.LimitRule{
-		DomainGlob:  "*",
-		Parallelism: 10,
-	})
-
-	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookieValue)
-		r.Headers.Set("User-Agent", internal.RandomString())
-	})
-
+func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName string, cookieValue string) ([]dtos.Subject, *dtos.CustomError) {
 	url := internal.IMALUUM_SCHEDULE_PAGE + sessionQuery
 
-	schedule := []*Subject{}
+	schedule := []dtos.Subject{}
 
 	c.OnHTML(".box-body table.table.table-hover", func(e *colly.HTMLElement) {
 		e.ForEach("tr", func(i int, element *colly.HTMLElement) {
 			tds := element.ChildTexts("td")
 
 			days := []uint8{}
-			weekTime := []WeekTime{}
+			weekTime := []dtos.WeekTime{}
 
 			if len(tds) == 0 {
 				// Skip the first row
@@ -138,21 +147,23 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 				_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
 
 				for _, day := range _days {
-					if strings.Contains(day, "SUN") {
-						days = append(days, 0)
-					} else if strings.Contains(day, "MON") || day == "M" {
-						days = append(days, 1)
-					} else if strings.Contains(day, "TUE") || day == "T" {
-						days = append(days, 2)
-					} else if strings.Contains(day, "WED") || day == "W" {
-						days = append(days, 3)
-					} else if strings.Contains(day, "THUR") || day == "TH" {
-						days = append(days, 4)
-					} else if strings.Contains(day, "FRI") || day == "F" {
-						days = append(days, 5)
-					} else if strings.Contains(day, "SAT") {
-						days = append(days, 6)
+					dayNum := internal.GetScheduleDays(day)
+					days = append(days, dayNum)
+					timeTemp := tds[6]
+					time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
+
+					if len(time) != 2 {
+						continue
 					}
+
+					start := strings.TrimSpace(time[0])
+					end := strings.TrimSpace(time[1])
+
+					weekTime = append(weekTime, dtos.WeekTime{
+						Start: start,
+						End:   end,
+						Day:   dayNum,
+					})
 				}
 
 				for _, day := range days {
@@ -167,7 +178,7 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 					start := strings.TrimSpace(time[0])
 					end := strings.TrimSpace(time[1])
 
-					weekTime = append(weekTime, WeekTime{
+					weekTime = append(weekTime, dtos.WeekTime{
 						Start: start,
 						End:   end,
 						Day:   day,
@@ -177,7 +188,7 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 				venue := strings.TrimSpace(tds[7])
 				lecturer := strings.TrimSpace(tds[8])
 
-				schedule = append(schedule, &Subject{
+				schedule = append(schedule, dtos.Subject{
 					SessionName: sessionName,
 					Id:          cuid.New(),
 					CourseCode:  courseCode,
@@ -188,6 +199,7 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 					Venue:       venue,
 					Lecturer:    lecturer,
 				})
+
 			}
 
 			if len(tds) == 4 {
@@ -199,25 +211,8 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 				_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
 
 				for _, day := range _days {
-					if strings.Contains(day, "SUN") {
-						days = append(days, 0)
-					} else if strings.Contains(day, "MON") || day == "M" {
-						days = append(days, 1)
-					} else if strings.Contains(day, "TUE") || day == "T" {
-						days = append(days, 2)
-					} else if strings.Contains(day, "WED") || day == "W" {
-						days = append(days, 3)
-					} else if strings.Contains(day, "THUR") || day == "TH" {
-						days = append(days, 4)
-					} else if strings.Contains(day, "FRI") || day == "F" {
-						days = append(days, 5)
-					} else if strings.Contains(day, "SAT") {
-						days = append(days, 6)
-					}
-				}
-
-				for _, day := range days {
-
+					dayNum := internal.GetScheduleDays(day)
+					days = append(days, dayNum)
 					timeTemp := tds[6]
 					time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
 
@@ -228,17 +223,17 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 					start := strings.TrimSpace(time[0])
 					end := strings.TrimSpace(time[1])
 
-					weekTime = append(weekTime, WeekTime{
+					weekTime = append(weekTime, dtos.WeekTime{
 						Start: start,
 						End:   end,
-						Day:   day,
+						Day:   dayNum,
 					})
 				}
 
 				venue := strings.TrimSpace(tds[7])
 				lecturer := strings.TrimSpace(tds[8])
 
-				schedule = append(schedule, &Subject{
+				schedule = append(schedule, dtos.Subject{
 					SessionName: sessionName,
 					Id:          cuid.Slug(),
 					CourseCode:  courseCode,
@@ -249,7 +244,6 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 					Venue:       venue,
 					Lecturer:    lecturer,
 				})
-
 			}
 		})
 	})
@@ -257,6 +251,8 @@ func getScheduleFromSession(sessionQuery string, sessionName string, cookieValue
 	if err := c.Visit(url); err != nil {
 		return nil, dtos.ErrFailedToGoToURL
 	}
+
+	c.Wait()
 
 	return schedule, nil
 }

@@ -26,5 +26,5 @@ func GetScheduleHandler(c echo.Context) error {
 		Data:    &echo.Map{"schedule": data},
 	}
 
-	return c.JSON(http.StatusCreated, response)
+	return c.JSON(http.StatusOK, response)
 }

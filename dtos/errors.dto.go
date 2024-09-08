@@ -46,4 +46,9 @@ var (
 		StatusCode: 500,
 		Message:    "Failed to go to URL!",
 	}
+
+	ErrFailedToLimit = &CustomError{
+		StatusCode: 500,
+		Message:    "Failed to set goroutine limit!",
+	}
 )
