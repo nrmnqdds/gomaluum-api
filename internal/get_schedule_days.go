@@ -20,6 +20,6 @@ func GetScheduleDays(day string) uint8 {
 	} else if strings.Contains(day, "SAT") {
 		return 6
 	} else {
-		return 0
+		return 7
 	}
 }

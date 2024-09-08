@@ -6,8 +6,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/nrmnqdds/gomaluum-api/controllers"
+	_ "github.com/nrmnqdds/gomaluum-api/docs/swagger"
 	echoSwagger "github.com/swaggo/echo-swagger"
-  	_ "github.com/nrmnqdds/gomaluum-api/docs/swagger"
 	"go.uber.org/zap"
 )
 

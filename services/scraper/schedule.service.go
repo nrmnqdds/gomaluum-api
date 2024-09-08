@@ -101,25 +101,6 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 					})
 				}
 
-				for _, day := range days {
-
-					timeTemp := tds[6]
-					time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
-
-					if len(time) != 2 {
-						continue
-					}
-
-					start := strings.TrimSpace(time[0])
-					end := strings.TrimSpace(time[1])
-
-					weekTime = append(weekTime, dtos.WeekTime{
-						Start: start,
-						End:   end,
-						Day:   day,
-					})
-				}
-
 				venue := strings.TrimSpace(tds[7])
 				lecturer := strings.TrimSpace(tds[8])
 
