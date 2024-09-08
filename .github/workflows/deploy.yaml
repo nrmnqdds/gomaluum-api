@@ -36,7 +36,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: ghcr.io/nrmnqdds/gomaluum:${{ env.sha_short }}
+          tags: ghcr.io/nrmnqdds/gomaluum:latest
           cache-from: type=registry,ref=ghcr.io/nrmnqdds/gomaluum:cache
           cache-to: type=registry,mode=max,ref=ghcr.io/nrmnqdds/gomaluum:cache,image-manifest=true
 
@@ -47,7 +47,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
-            sed -i "s/ghcr.io\/nrmnqdds\/gomaluum:latest/ghcr.io\/nrmnqdds\/gomaluum:${{ env.sha_short }}/g" /home/ubuntu/docker-compose.yml
             docker login ghcr.io -u nrmnqdds -p ${{ secrets.GHCR_TOKEN }}
+            docker compose pull
             docker compose up --force-recreate --build -d gomaluum
             docker system prune -a -f
