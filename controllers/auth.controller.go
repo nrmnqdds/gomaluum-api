@@ -21,7 +21,12 @@ import (
 func LoginHandler(c echo.Context) error {
 	user := dtos.LoginDTO{}
 
+	logger := internal.NewLogger()
+
 	if c.Bind(&user) != nil {
+
+		logger.Error("Invalid request payload!")
+
 		response := dtos.Response{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid request payload!",
@@ -36,6 +41,7 @@ func LoginHandler(c echo.Context) error {
 			Message: "Invalid request payload!",
 			Data:    nil,
 		}
+		logger.Error("Invalid request payload!", validationErr)
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
@@ -46,6 +52,7 @@ func LoginHandler(c echo.Context) error {
 			Message: err.Message,
 			Data:    nil,
 		}
+		logger.Error("Invalid request payload!", err)
 		return c.JSON(http.StatusInternalServerError, response)
 	}
 
