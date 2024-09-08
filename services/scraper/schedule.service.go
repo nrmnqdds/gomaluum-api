@@ -122,11 +122,11 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 				section := subjects[len(subjects)-1].Section
 				chr := subjects[len(subjects)-1].Chr
 
-				_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
+				_days := strings.Split(strings.Replace(strings.TrimSpace(tds[0]), " ", "", -1), "-")
 
 				for _, day := range _days {
 					dayNum := internal.GetScheduleDays(day)
-					timeTemp := tds[6]
+					timeTemp := tds[1]
 					time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
 
 					if len(time) != 2 {
@@ -143,8 +143,8 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 					})
 				}
 
-				venue := strings.TrimSpace(tds[7])
-				lecturer := strings.TrimSpace(tds[8])
+				venue := strings.TrimSpace(tds[2])
+				lecturer := strings.TrimSpace(tds[3])
 
 				subjects = append(subjects, dtos.Subject{
 					SessionName: sessionName,
