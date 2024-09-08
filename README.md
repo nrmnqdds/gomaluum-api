@@ -37,7 +37,7 @@ air
 # Using Docker
 ```
 docker build -t gomaluum .
-docker run -p 8080:8080 -d gomaluum
+docker run -p 1323:1323 -d gomaluum
 ```
 
 # Using Docker Compose
