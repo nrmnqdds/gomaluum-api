@@ -64,7 +64,7 @@ func LoginHandler(c echo.Context) error {
 	response := dtos.Response{
 		Status:  http.StatusOK,
 		Message: "Successfully login!",
-		Data:    &echo.Map{"data": data},
+		Data:    data,
 	}
 
 	return c.JSON(http.StatusCreated, response)

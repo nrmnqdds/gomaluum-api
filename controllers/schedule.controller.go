@@ -27,14 +27,14 @@ func GetScheduleHandler(c echo.Context) error {
 			Message: err.Message,
 			Data:    nil,
 		}
-    logger.Error(err)
+		logger.Error(err)
 		return c.JSON(http.StatusInternalServerError, response)
 	}
 
 	response := dtos.Response{
 		Status:  http.StatusOK,
 		Message: "Successfully get user schedule!",
-		Data:    &echo.Map{"schedule": data},
+		Data:    data,
 	}
 
 	return c.JSON(http.StatusOK, response)
