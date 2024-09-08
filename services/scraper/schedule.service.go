@@ -1,8 +1,6 @@
 package scraper
 
 import (
-	"encoding/json"
-	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,20 +12,16 @@ import (
 	"github.com/nrmnqdds/gomaluum-api/internal"
 )
 
-func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
-	c := colly.NewCollector(
-		colly.Async(true),
-	)
+var (
+	schedule []dtos.ScheduleResponse
+	logger   = internal.NewLogger()
+)
 
-	// c.Limit(&colly.LimitRule{
-	// 	DomainGlob: "*",
-	// 	Parallelism: 2,
-	// })
+func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
+	c := colly.NewCollector()
 
 	var wg sync.WaitGroup
-	scheduleChan := make(chan dtos.ScheduleResponse)
-	schedule := []dtos.ScheduleResponse{}
-	var mu sync.Mutex
+	scheduleChan := make(chan []dtos.ScheduleResponse, 100)
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
 	if err != nil {
@@ -45,78 +39,34 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 			sessionQuery string
 		}
 
-		sessionList := []Session{}
-
 		e.ForEach("a", func(i int, element *colly.HTMLElement) {
-			sessionList = append(sessionList, Session{
-				sessionName:  element.Text,
-				sessionQuery: element.Attr("href"),
-			})
-		})
-
-		for _, session := range sessionList {
 			wg.Add(1)
-
-			go func(session Session) {
-				// defer wg.Done()
-
-				mu.Lock()
-
-				_schedule, err := getScheduleFromSession(c, session.sessionQuery, session.sessionName, cookie.Value)
-				if err != nil {
-					return
-				}
-
-				if len(_schedule) != 0 {
-					unmarshaled, err := json.Marshal(_schedule)
-					if err != nil {
-						log.Println("failed to marshal schedule")
-					}
-					log.Println("_schedule: ", string(unmarshaled))
-					scheduleChan <- dtos.ScheduleResponse{
-						SessionName:  session.sessionName,
-						SessionQuery: session.sessionQuery,
-						Schedule:     _schedule,
-					}
-
-					mu.Unlock()
-					wg.Done()
-					return
-				}
-			}(session)
-		}
+			go getScheduleFromSession(c, element.Attr("href"), element.Text, cookie.Value, &wg, scheduleChan)
+		})
 	})
 
 	if err := c.Visit(internal.IMALUUM_SCHEDULE_PAGE); err != nil {
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
-	// Goroutine to collect the results from the channel
 	go func() {
-		for resp := range scheduleChan {
-			unmarshaled, err := json.Marshal(resp)
-			if err != nil {
-				log.Println("failed to marshal schedule")
-			}
-			log.Println("resp: ", string(unmarshaled))
-			schedule = append(schedule, resp)
-		}
+		wg.Wait()
+		close(scheduleChan)
+
+		logger.Info("Closed schedule channel")
 	}()
 
-	wg.Wait()
-	close(scheduleChan)
-
-	c.Wait()
-
-	log.Println("returned schedule: ", schedule)
+	logger.Info("Returned schedule", schedule)
 
 	return schedule, nil
 }
 
-func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName string, cookieValue string) ([]dtos.Subject, *dtos.CustomError) {
+func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName string, cookieValue string, wg *sync.WaitGroup, ch chan<- []dtos.ScheduleResponse) *dtos.CustomError {
+	defer wg.Done()
+
 	url := internal.IMALUUM_SCHEDULE_PAGE + sessionQuery
 
-	schedule := []dtos.Subject{}
+	subjects := []dtos.Subject{}
 
 	c.OnHTML(".box-body table.table.table-hover", func(e *colly.HTMLElement) {
 		e.ForEach("tr", func(i int, element *colly.HTMLElement) {
@@ -188,7 +138,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 				venue := strings.TrimSpace(tds[7])
 				lecturer := strings.TrimSpace(tds[8])
 
-				schedule = append(schedule, dtos.Subject{
+				subjects = append(subjects, dtos.Subject{
 					SessionName: sessionName,
 					Id:          cuid.New(),
 					CourseCode:  courseCode,
@@ -203,10 +153,10 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 			}
 
 			if len(tds) == 4 {
-				courseCode := schedule[len(schedule)-1].CourseCode
-				courseName := schedule[len(schedule)-1].CourseName
-				section := schedule[len(schedule)-1].Section
-				chr := schedule[len(schedule)-1].Chr
+				courseCode := subjects[len(subjects)-1].CourseCode
+				courseName := subjects[len(subjects)-1].CourseName
+				section := subjects[len(subjects)-1].Section
+				chr := subjects[len(subjects)-1].Chr
 
 				_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
 
@@ -233,7 +183,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 				venue := strings.TrimSpace(tds[7])
 				lecturer := strings.TrimSpace(tds[8])
 
-				schedule = append(schedule, dtos.Subject{
+				subjects = append(subjects, dtos.Subject{
 					SessionName: sessionName,
 					Id:          cuid.Slug(),
 					CourseCode:  courseCode,
@@ -249,10 +199,18 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 	})
 
 	if err := c.Visit(url); err != nil {
-		return nil, dtos.ErrFailedToGoToURL
+		return dtos.ErrFailedToGoToURL
 	}
 
-	c.Wait()
+	schedule = append(schedule, dtos.ScheduleResponse{
+		SessionName:  sessionName,
+		SessionQuery: sessionQuery,
+		Schedule:     subjects,
+	})
 
-	return schedule, nil
+	logger.Info("Returned schedule", schedule)
+
+	ch <- schedule
+
+	return nil
 }

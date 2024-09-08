@@ -22,8 +22,8 @@ func init() {
 
 func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) {
 	formVal := url.Values{
-		"username":    {string(user.Username)},
-		"password":    {string(user.Password)},
+		"username":    {user.Username},
+		"password":    {user.Password},
 		"execution":   {"e1s1"},
 		"_eventId":    {"submit"},
 		"geolocation": {""},
@@ -42,8 +42,9 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 	client.Jar.SetCookies(urlObj, resp_first.Cookies())
 
 	// Second request
-	req_second, _ := http.NewRequest("POST", "https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", strings.NewReader(formVal.Encode()))
-  setHeaders(req_second)
+	req_second, _ := http.NewRequest("POST", "https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", strings.NewReader(formVal.Encode()))
+	req_second.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	setHeaders(req_second)
 
 	resp, err := client.Do(req_second)
 	if err != nil {
@@ -52,8 +53,6 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 	resp.Body.Close()
 
 	cookies := client.Jar.Cookies(urlObj)
-	// client.Jar.SetCookies(urlObj, cookies)
-
 	for _, cookie := range cookies {
 		if cookie.Name == "MOD_AUTH_CAS" {
 			return &dtos.LoginResponseDTO{

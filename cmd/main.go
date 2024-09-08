@@ -34,11 +34,11 @@ func main() {
 		return c.String(http.StatusOK, "pong")
 	})
 
-	e.POST("/api/v1/login", controllers.LoginHandler)
+	e.POST("/api/login", controllers.LoginHandler)
 
-	e.GET("/api/v1/profile", controllers.GetProfileHandler)
+	e.GET("/api/profile", controllers.GetProfileHandler)
 
-	e.GET("/api/v1/schedule", controllers.GetScheduleHandler)
+	e.GET("/api/schedule", controllers.GetScheduleHandler)
 
 	e.Logger.Fatal(e.Start(":1323"))
 }

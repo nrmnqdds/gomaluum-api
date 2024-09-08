@@ -51,4 +51,9 @@ var (
 		StatusCode: 500,
 		Message:    "Failed to set goroutine limit!",
 	}
+
+	ErrFailedToInitLogger = &CustomError{
+		StatusCode: 500,
+		Message:    "Failed to initialize logger!",
+	}
 )
