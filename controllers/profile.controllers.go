@@ -23,8 +23,8 @@ func GetProfileHandler(c echo.Context) error {
 	response := dtos.Response{
 		Status:  http.StatusOK,
 		Message: "Successfully get user profile!",
-		Data:    &echo.Map{"data": data},
+		Data:    &echo.Map{"profile": data},
 	}
 
-	return c.JSON(http.StatusCreated, response)
+	return c.JSON(http.StatusOK, response)
 }
