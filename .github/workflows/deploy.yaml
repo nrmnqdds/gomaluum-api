@@ -42,7 +42,6 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
-            sed -i "s+ghcr.io/nrmnqdds/gomaluum.*+ghcr.io/nrmnqdds/gomaluum:latest'+g" /home/ubuntu/docker-compose.yaml
             docker login ghcr.io -u nrmnqdds -p ${{ secrets.GHCR_TOKEN }}
-            docker compose up --force-recreate --build -d gomaluum
+            compose up --force-recreate --build -d gomaluum
             docker system prune -a -f
