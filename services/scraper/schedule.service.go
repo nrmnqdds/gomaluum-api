@@ -12,10 +12,7 @@ import (
 	"github.com/nrmnqdds/gomaluum-api/internal"
 )
 
-var (
-	schedule []dtos.ScheduleResponse
-	logger   = internal.NewLogger()
-)
+var schedule []dtos.ScheduleResponse
 
 func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
 	c := colly.NewCollector()
@@ -49,15 +46,8 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
-	go func() {
-		wg.Wait()
-		close(scheduleChan)
-
-		logger.Info("Closed schedule channel")
-	}()
-
-	logger.Info("Returned schedule", schedule)
-
+	wg.Wait()
+	close(scheduleChan)
 	return schedule, nil
 }
 
@@ -207,8 +197,6 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 		SessionQuery: sessionQuery,
 		Schedule:     subjects,
 	})
-
-	logger.Info("Returned schedule", schedule)
 
 	ch <- schedule
 
