@@ -57,7 +57,6 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 		e.ForEach("tr", func(i int, element *colly.HTMLElement) {
 			tds := element.ChildTexts("td")
 
-			days := []uint8{}
 			weekTime := []dtos.WeekTime{}
 
 			if len(tds) == 0 {
@@ -83,7 +82,6 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 
 				for _, day := range _days {
 					dayNum := internal.GetScheduleDays(day)
-					days = append(days, dayNum)
 					timeTemp := tds[6]
 					time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
 
@@ -128,7 +126,6 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 
 				for _, day := range _days {
 					dayNum := internal.GetScheduleDays(day)
-					days = append(days, dayNum)
 					timeTemp := tds[6]
 					time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
 
