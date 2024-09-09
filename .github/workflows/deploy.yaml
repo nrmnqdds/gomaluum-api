@@ -35,7 +35,13 @@ jobs:
           tags: ghcr.io/nrmnqdds/gomaluum:latest
           cache-from: type=registry,ref=ghcr.io/nrmnqdds/gomaluum:cache
           cache-to: type=registry,mode=max,ref=ghcr.io/nrmnqdds/gomaluum:cache,image-manifest=true
-      - name: executing remote ssh commands using password
+  deploy:
+    needs: push-store-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout GitHub Action'
+        uses: actions/checkout@main
+      - name: 'Deploy to EC2'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
