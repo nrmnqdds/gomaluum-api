@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine AS build
+FROM golang:1.23.1-alpine AS build
 LABEL org.opencontainers.image.source=https://github.com/nrmnqdds/gomaluum-api
 
 WORKDIR /app
