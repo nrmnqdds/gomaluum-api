@@ -27,7 +27,7 @@ A Reimplementation of the infamous [Simplified i-Ma'luum](https://imaluum.nrmnqd
 
 Swagger API documentation is available at [here](https://api.imaluum.nrmnqdds.com/swagger/index.html).
 
-Features
+What's difference from previous version
 --------
 
 -	[x] **Go** implementation
@@ -35,8 +35,9 @@ Features
 -	[x] **Docker** support
 -	[x] **Docker Compose** support
 
-Local installation
-==================
+> Requires go >= 1.23
+
+## Local installation
 
 ```
 git clone http://github.com/nrmnqdds/gomaluum-api
@@ -45,17 +46,20 @@ go mod download
 air
 ```
 
-Using Docker
-============
+## Using Docker
 
 ```
 docker build -t gomaluum .
 docker run -p 1323:1323 -d gomaluum
 ```
 
-Using Docker Compose
-====================
+## Using Docker Compose
 
 ```
 docker-compose up -d gomaluum
 ```
+
+## Todo
+- [ ] Result scraper
+  - Handles unpaid tuition fee edgecases
+- [ ] Make it fasterrrrr
