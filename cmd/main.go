@@ -36,5 +36,7 @@ func main() {
 
 	e.GET("/api/schedule", controllers.GetScheduleHandler)
 
+	e.GET("/api/result", controllers.GetResultHandler)
+
 	e.Logger.Fatal(e.Start(":1323"))
 }
