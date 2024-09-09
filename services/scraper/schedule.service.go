@@ -12,10 +12,7 @@ import (
 	"github.com/nrmnqdds/gomaluum-api/internal"
 )
 
-var (
-	schedule []dtos.ScheduleResponse
-	mu       sync.Mutex
-)
+var schedule []dtos.ScheduleResponse
 
 func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
 	c := colly.NewCollector()
@@ -55,8 +52,6 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 }
 
 func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName string, cookieValue string, wg *sync.WaitGroup) *dtos.CustomError {
-	mu.Lock()
-	defer mu.Unlock()
 	defer wg.Done()
 
 	url := internal.IMALUUM_SCHEDULE_PAGE + sessionQuery
