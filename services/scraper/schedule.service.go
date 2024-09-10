@@ -187,6 +187,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 
 	mu.Lock()
 	schedule = append(schedule, dtos.ScheduleResponse{
+		Id:           cuid.Slug(),
 		SessionName:  sessionName,
 		SessionQuery: sessionQuery,
 		Schedule:     subjects,
