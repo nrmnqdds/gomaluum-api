@@ -1,7 +1,7 @@
 package scraper
 
 import (
-	_"runtime"
+	_ "runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,8 +16,8 @@ import (
 
 var (
 	schedule       []dtos.ScheduleResponse
-	logger         = internal.NewLogger()
 	sessionQueries []string
+	mu             sync.Mutex
 )
 
 func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
@@ -50,7 +50,6 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 			return
 		}
 
-		logger.Info("latestSession: ", latestSession)
 		sessionQueries = append(sessionQueries, latestSession)
 
 		wg.Add(1)
@@ -72,6 +71,7 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 
 func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName string, cookieValue string, wg *sync.WaitGroup) *dtos.CustomError {
 	defer wg.Done()
+	mu.Lock()
 
 	url := internal.IMALUUM_SCHEDULE_PAGE + sessionQuery
 
@@ -194,6 +194,8 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 		SessionQuery: sessionQuery,
 		Schedule:     subjects,
 	})
+
+	mu.Unlock()
 
 	return nil
 }

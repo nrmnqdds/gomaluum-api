@@ -36,8 +36,6 @@ func main() {
 
 	e.GET("/api/schedule", controllers.GetScheduleHandler)
 
-	e.GET("/api/schedule/latest", controllers.GetLatestScheduleHandler)
-
 	e.GET("/api/result", controllers.GetResultHandler)
 
 	e.Logger.Fatal(e.Start(":1323"))
