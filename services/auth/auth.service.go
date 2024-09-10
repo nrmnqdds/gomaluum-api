@@ -5,6 +5,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 )
@@ -14,13 +15,14 @@ var (
 	urlObj *url.URL
 )
 
-func init() {
-	jar, _ := cookiejar.New(nil)
-	client = &http.Client{Jar: jar}
-	urlObj, _ = url.Parse("https://imaluum.iium.edu.my/")
-}
-
 func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) {
+	jar, _ := cookiejar.New(nil)
+	client = &http.Client{
+		Jar:     jar,
+		Timeout: time.Second,
+	}
+	urlObj, _ = url.Parse("https://imaluum.iium.edu.my/home")
+
 	formVal := url.Values{
 		"username":    {user.Username},
 		"password":    {user.Password},
@@ -42,7 +44,7 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 	client.Jar.SetCookies(urlObj, resp_first.Cookies())
 
 	// Second request
-	req_second, _ := http.NewRequest("POST", "https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", strings.NewReader(formVal.Encode()))
+	req_second, _ := http.NewRequest("POST", "https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", strings.NewReader(formVal.Encode()))
 	req_second.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	setHeaders(req_second)
 
@@ -53,6 +55,7 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 	resp.Body.Close()
 
 	cookies := client.Jar.Cookies(urlObj)
+
 	for _, cookie := range cookies {
 		if cookie.Name == "MOD_AUTH_CAS" {
 			return &dtos.LoginResponseDTO{
@@ -62,7 +65,7 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 		}
 	}
 
-	return nil, dtos.ErrInternalServerError
+	return nil, dtos.ErrFailedToLogin
 }
 
 func setHeaders(req *http.Request) {

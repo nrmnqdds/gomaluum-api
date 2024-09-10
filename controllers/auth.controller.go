@@ -45,6 +45,16 @@ func LoginHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
+	// Set cookie to delete the previous cookie
+	c.SetCookie(&http.Cookie{
+		Name:   "MOD_AUTH_CAS",
+		Value:  "test",
+		Path:   "/",
+		MaxAge: -1,
+
+		HttpOnly: true,
+	})
+
 	data, err := auth.LoginUser(&user)
 	if err != nil {
 		response := dtos.Response{
