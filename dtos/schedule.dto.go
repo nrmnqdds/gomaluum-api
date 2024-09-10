@@ -7,7 +7,6 @@ type WeekTime struct {
 }
 
 type Subject struct {
-	SessionName string     `json:"session_name"`
 	Id          string     `json:"id"`
 	CourseCode  string     `json:"course_code"`
 	CourseName  string     `json:"course_name"`
