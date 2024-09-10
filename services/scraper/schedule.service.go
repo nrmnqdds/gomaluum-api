@@ -1,6 +1,8 @@
 package scraper
 
 import (
+	_"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,10 +14,16 @@ import (
 	"github.com/nrmnqdds/gomaluum-api/internal"
 )
 
-var schedule []dtos.ScheduleResponse
+var (
+	schedule       []dtos.ScheduleResponse
+	logger         = internal.NewLogger()
+	sessionQueries []string
+)
 
 func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
 	c := colly.NewCollector()
+
+	isLatest := e.QueryParam("latest")
 
 	var wg sync.WaitGroup
 
@@ -30,10 +38,23 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 	})
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
-		e.ForEach("a", func(i int, element *colly.HTMLElement) {
-			wg.Add(1)
-			go getScheduleFromSession(c, element.Attr("href"), element.Text, cookie.Value, &wg)
-		})
+		if isLatest == "true" {
+			if len(sessionQueries) > 0 {
+				return
+			}
+		}
+
+		latestSession := e.ChildAttr("a", "href")
+
+		if slices.Contains(sessionQueries, latestSession) {
+			return
+		}
+
+		logger.Info("latestSession: ", latestSession)
+		sessionQueries = append(sessionQueries, latestSession)
+
+		wg.Add(1)
+		go getScheduleFromSession(c, latestSession, e.ChildText("a"), cookie.Value, &wg)
 	})
 
 	if err := c.Visit(internal.IMALUUM_SCHEDULE_PAGE); err != nil {
@@ -41,6 +62,11 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 	}
 
 	wg.Wait()
+
+	// Get the number of running Goroutines
+	// numGoroutines := runtime.NumGoroutine()
+	//
+	// logger.Infof("Number of Running Goroutines: %d\n", numGoroutines)
 	return schedule, nil
 }
 

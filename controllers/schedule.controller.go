@@ -39,3 +39,33 @@ func GetScheduleHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, response)
 }
+
+// @Title GetScheduleHandler
+// @Description Get schedule from i-Ma'luum
+// @Tags scraper
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /api/schedule [get]
+func GetLatestScheduleHandler(c echo.Context) error {
+	data, err := scraper.ScheduleScraper(c)
+
+	logger := internal.NewLogger()
+
+	if err != nil {
+		response := dtos.Response{
+			Status:  err.StatusCode,
+			Message: err.Message,
+			Data:    nil,
+		}
+		logger.Error(err)
+		return c.JSON(http.StatusInternalServerError, response)
+	}
+
+	response := dtos.Response{
+		Status:  http.StatusOK,
+		Message: "Successfully get user schedule!",
+		Data:    data,
+	}
+
+	return c.JSON(http.StatusOK, response)
+}
