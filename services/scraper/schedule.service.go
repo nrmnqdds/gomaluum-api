@@ -71,7 +71,6 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 
 func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName string, cookieValue string, wg *sync.WaitGroup) *dtos.CustomError {
 	defer wg.Done()
-	mu.Lock()
 
 	url := internal.IMALUUM_SCHEDULE_PAGE + sessionQuery
 
@@ -189,6 +188,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 		return dtos.ErrFailedToGoToURL
 	}
 
+	mu.Lock()
 	schedule = append(schedule, dtos.ScheduleResponse{
 		SessionName:  sessionName,
 		SessionQuery: sessionQuery,
