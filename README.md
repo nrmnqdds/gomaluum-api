@@ -25,7 +25,7 @@ Support this project!
 
 A Reimplementation of the infamous [Simplified i-Ma'luum](https://imaluum.nrmnqdds.com) API in Go.
 
-Swagger API documentation is available at [here](https://api.imaluum.nrmnqdds.com/swagger/index.html).
+Swagger API documentation is available at [here](https://api.nrmnqdds.com/swagger/index.html).
 
 What's difference from previous version
 --------
