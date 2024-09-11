@@ -54,8 +54,12 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 
 		sessionQueries = append(sessionQueries, latestSession)
 
+		sessionName := e.ChildText("a")
+
+    mu.Lock()
 		wg.Add(1)
-		go getScheduleFromSession(c, latestSession, e.ChildText("a"), cookie.Value, &schedule, &wg, &mu)
+		go getScheduleFromSession(c, &latestSession, &sessionName, &schedule, &wg)
+		mu.Unlock()
 	})
 
 	if err := c.Visit(internal.IMALUUM_SCHEDULE_PAGE); err != nil {
@@ -76,10 +80,10 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 	return schedule, nil
 }
 
-func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName string, cookieValue string, schedule *[]dtos.ScheduleResponse, wg *sync.WaitGroup, mu *sync.Mutex) *dtos.CustomError {
+func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, schedule *[]dtos.ScheduleResponse, wg *sync.WaitGroup) *dtos.CustomError {
 	defer wg.Done()
 
-	url := internal.IMALUUM_SCHEDULE_PAGE + sessionQuery
+	url := internal.IMALUUM_SCHEDULE_PAGE + *sessionQuery
 
 	subjects := []dtos.Subject{}
 
@@ -192,15 +196,12 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 		return dtos.ErrFailedToGoToURL
 	}
 
-	mu.Lock()
 	*schedule = append(*schedule, dtos.ScheduleResponse{
 		Id:           cuid.Slug(),
-		SessionName:  sessionName,
-		SessionQuery: sessionQuery,
+		SessionName:  *sessionName,
+		SessionQuery: *sessionQuery,
 		Schedule:     subjects,
 	})
-
-	mu.Unlock()
 
 	return nil
 }
