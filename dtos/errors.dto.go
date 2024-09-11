@@ -56,4 +56,9 @@ var (
 		StatusCode: 500,
 		Message:    "Failed to initialize logger!",
 	}
+
+	ErrFailedToGetSchedule = &CustomError{
+		StatusCode: 500,
+		Message:    "Failed to get schedule!",
+	}
 )

@@ -1,7 +1,7 @@
 package scraper
 
 import (
-	_ "runtime"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -14,18 +14,18 @@ import (
 	"github.com/nrmnqdds/gomaluum-api/internal"
 )
 
-var (
-	schedule       []dtos.ScheduleResponse
-	sessionQueries []string
-	mu             sync.Mutex
-)
-
 func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
 	c := colly.NewCollector()
 
 	isLatest := e.QueryParam("latest")
 
-	var wg sync.WaitGroup
+	logger := internal.NewLogger()
+
+	var (
+		schedule []dtos.ScheduleResponse
+		wg       sync.WaitGroup
+		mu       sync.Mutex
+	)
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
 	if err != nil {
@@ -36,6 +36,8 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookie.Value)
 		r.Headers.Set("User-Agent", internal.RandomString())
 	})
+
+	sessionQueries := []string{}
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
 		if isLatest == "true" {
@@ -53,7 +55,7 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 		sessionQueries = append(sessionQueries, latestSession)
 
 		wg.Add(1)
-		go getScheduleFromSession(c, latestSession, e.ChildText("a"), cookie.Value, &wg)
+		go getScheduleFromSession(c, latestSession, e.ChildText("a"), cookie.Value, &schedule, &wg, &mu)
 	})
 
 	if err := c.Visit(internal.IMALUUM_SCHEDULE_PAGE); err != nil {
@@ -63,13 +65,18 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 	wg.Wait()
 
 	// Get the number of running Goroutines
-	// numGoroutines := runtime.NumGoroutine()
-	//
-	// logger.Infof("Number of Running Goroutines: %d\n", numGoroutines)
+	numGoroutines := runtime.NumGoroutine()
+
+	logger.Infof("Number of Running Goroutines: %d\n", numGoroutines)
+
+	if len(schedule) == 0 {
+		return nil, dtos.ErrFailedToScrape
+	}
+
 	return schedule, nil
 }
 
-func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName string, cookieValue string, wg *sync.WaitGroup) *dtos.CustomError {
+func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName string, cookieValue string, schedule *[]dtos.ScheduleResponse, wg *sync.WaitGroup, mu *sync.Mutex) *dtos.CustomError {
 	defer wg.Done()
 
 	url := internal.IMALUUM_SCHEDULE_PAGE + sessionQuery
@@ -186,7 +193,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery string, sessionName
 	}
 
 	mu.Lock()
-	schedule = append(schedule, dtos.ScheduleResponse{
+	*schedule = append(*schedule, dtos.ScheduleResponse{
 		Id:           cuid.Slug(),
 		SessionName:  sessionName,
 		SessionQuery: sessionQuery,

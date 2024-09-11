@@ -38,5 +38,9 @@ func ProfileScraper(e echo.Context) (*dtos.Profile, *dtos.CustomError) {
 
 	profile.ImageURL = fmt.Sprintf("https://smartcard.iium.edu.my/packages/card/printing/camera/uploads/original/%s.jpeg", profile.MatricNo)
 
+	if validationErr := internal.Validator.Struct(&profile); validationErr != nil {
+		return nil, dtos.ErrFailedToScrape
+	}
+
 	return &profile, nil
 }
