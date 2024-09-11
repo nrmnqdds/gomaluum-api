@@ -15,6 +15,19 @@ info:
   title: Gomaluum API
   version: "1.0"
 paths:
+  /api/catalog:
+    get:
+      description: Get catalog
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - catalog
   /api/login:
     post:
       consumes:
@@ -37,6 +50,19 @@ paths:
             type: object
       tags:
       - login
+  /api/result:
+    get:
+      description: Get result from i-Ma'luum
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - scraper
   /api/schedule:
     get:
       description: Get schedule from i-Ma'luum

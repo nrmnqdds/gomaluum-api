@@ -38,5 +38,7 @@ func main() {
 
 	e.GET("/api/result", controllers.GetResultHandler)
 
+	e.GET("/api/catalog", controllers.CatalogHandler)
+
 	e.Logger.Fatal(e.Start(":1323"))
 }

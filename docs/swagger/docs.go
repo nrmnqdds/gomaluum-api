@@ -15,6 +15,26 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/catalog": {
+            "get": {
+                "description": "Get catalog",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "catalog"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/login": {
             "post": {
                 "description": "Login to i-Ma'luum",
@@ -37,6 +57,26 @@ const docTemplate = `{
                             "$ref": "#/definitions/dtos.LoginDTO"
                         }
                     }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/result": {
+            "get": {
+                "description": "Get result from i-Ma'luum",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scraper"
                 ],
                 "responses": {
                     "200": {
