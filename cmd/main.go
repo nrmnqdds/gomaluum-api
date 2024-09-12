@@ -7,7 +7,6 @@ import (
 
 	otelmid "go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 
-	"github.com/labstack/echo-contrib/echoprometheus"
 	"google.golang.org/grpc/credentials"
 
 	"github.com/labstack/echo/v4"
@@ -97,16 +96,11 @@ func main() {
 	// This middleware is used to recover from panics anywhere in the chain, log the panic (and a stack trace), and set a status code of 500.
 	e.Use(middleware.Recover())
 
-	// Set up Prometheus metrics middleware
-	e.Use(echoprometheus.NewMiddleware("gomaluum")) // adds middleware to gather metrics
-
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	e.GET("/ping", func(c echo.Context) error {
 		return c.String(http.StatusOK, "pong")
 	})
-
-	e.GET("/metrics", echoprometheus.NewHandler()) // adds route to serve gathered metrics
 
 	e.POST("/api/login", controllers.LoginHandler)
 
