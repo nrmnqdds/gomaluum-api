@@ -80,7 +80,11 @@ func main() {
 	e := echo.New()
 
 	cleanup := initTracer()
-	defer cleanup(context.Background())
+	defer func() {
+		if err := cleanup(context.Background()); err != nil {
+			logger.Fatalf("Failed to shutdown exporter: %v", err)
+		}
+	}()
 
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: "[${time_rfc3339}] ${status} ${method} ${path} (${remote_ip}) ${latency_human}\n",
