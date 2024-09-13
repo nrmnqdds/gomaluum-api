@@ -32,6 +32,10 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 		return nil, dtos.ErrUnauthorized
 	}
 
+	if cookie.Value == "" {
+		return nil, dtos.ErrUnauthorized
+	}
+
 	c.OnRequest(func(r *colly.Request) {
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookie.Value)
 		r.Headers.Set("User-Agent", internal.RandomString())
