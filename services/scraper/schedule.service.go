@@ -17,14 +17,12 @@ import (
 var logger = internal.NewLogger()
 
 func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
-	c := colly.NewCollector()
-
-	isLatest := e.QueryParam("latest")
-
 	var (
+		c        = colly.NewCollector()
 		schedule []dtos.ScheduleResponse
 		wg       sync.WaitGroup
 		mu       sync.Mutex
+		isLatest = e.QueryParam("latest")
 	)
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
