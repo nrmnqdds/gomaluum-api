@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"runtime"
 	"slices"
 	"sort"
 	"strings"
@@ -11,17 +12,19 @@ import (
 	"github.com/lucsky/cuid"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/internal"
-	"github.com/sourcegraph/conc"
+	"github.com/sourcegraph/conc/pool"
 )
+
+var logger = internal.NewLogger()
 
 func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
 	var (
 		c              = colly.NewCollector()
 		schedule       []dtos.ScheduleResponse
-		wg             conc.WaitGroup
 		mu             sync.Mutex
 		isLatest       = e.QueryParam("latest")
 		sessionQueries = []string{}
+		p              = pool.New().WithMaxGoroutines(20)
 	)
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
@@ -55,7 +58,7 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 
 		sessionName := e.ChildText("a")
 
-		wg.Go(func() {
+		p.Go(func() {
 			getScheduleFromSession(c, &latestSession, &sessionName, &schedule, &mu)
 		})
 	})
@@ -64,7 +67,10 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
-	wg.Wait()
+	p.Wait()
+  c.Wait()
+
+	logger.Infof("Number of Goroutines: %d", runtime.NumGoroutine())
 
 	if len(schedule) == 0 {
 		return nil, dtos.ErrFailedToScrape
