@@ -11,13 +11,14 @@ import (
 	"github.com/lucsky/cuid"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/sourcegraph/conc"
 )
 
 func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
 	var (
 		c              = colly.NewCollector()
 		schedule       []dtos.ScheduleResponse
-		wg             sync.WaitGroup
+		wg             conc.WaitGroup
 		mu             sync.Mutex
 		isLatest       = e.QueryParam("latest")
 		sessionQueries = []string{}
@@ -54,8 +55,9 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 
 		sessionName := e.ChildText("a")
 
-		wg.Add(1)
-		go getScheduleFromSession(c, &latestSession, &sessionName, &schedule, &wg, &mu)
+		wg.Go(func() {
+			getScheduleFromSession(c, &latestSession, &sessionName, &schedule, &mu)
+		})
 	})
 
 	if err := c.Visit(internal.IMALUUM_SCHEDULE_PAGE); err != nil {
@@ -75,8 +77,7 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 	return schedule, nil
 }
 
-func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, schedule *[]dtos.ScheduleResponse, wg *sync.WaitGroup, mu *sync.Mutex) *dtos.CustomError {
-	defer wg.Done()
+func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, schedule *[]dtos.ScheduleResponse, mu *sync.Mutex) {
 	defer mu.Unlock()
 
 	url := internal.IMALUUM_SCHEDULE_PAGE + *sessionQuery
@@ -184,7 +185,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 	})
 
 	if err := c.Visit(url); err != nil {
-		return dtos.ErrFailedToGoToURL
+		return
 	}
 
 	*schedule = append(*schedule, dtos.ScheduleResponse{
@@ -193,6 +194,4 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 		SessionQuery: *sessionQuery,
 		Schedule:     subjects,
 	})
-
-	return nil
 }
