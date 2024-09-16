@@ -1,9 +1,8 @@
 package scraper
 
 import (
-	"runtime"
 	"slices"
-	"strconv"
+	"sort"
 	"strings"
 	"sync"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/lucsky/cuid"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/rung/go-safecast"
 )
 
 var logger = internal.NewLogger()
@@ -71,13 +71,18 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 	wg.Wait()
 
 	// Get the number of running Goroutines
-	numGoroutines := runtime.NumGoroutine()
+	// import "runtime"
+	// numGoroutines := runtime.NumGoroutine()
 
-	logger.Infof("Number of Running Goroutines: %d\n", numGoroutines)
+	// logger.Infof("Number of Running Goroutines: %d\n", numGoroutines)
 
 	if len(schedule) == 0 {
 		return nil, dtos.ErrFailedToScrape
 	}
+
+	sort.Slice(schedule, func(i, j int) bool {
+		return internal.CompareSessionNames(schedule[i].SessionName, schedule[j].SessionName)
+	})
 
 	return schedule, nil
 }
@@ -92,6 +97,8 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 	subjects := []dtos.Subject{}
 
 	for retryCount <= maxRetries {
+
+		// Clear the subjects slice
 		subjects = []dtos.Subject{}
 
 		c.OnHTML(".box-body table.table.table-hover tr", func(e *colly.HTMLElement) {
@@ -108,12 +115,12 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			if len(tds) == 9 {
 				courseCode := strings.TrimSpace(tds[0])
 				courseName := strings.TrimSpace(tds[1])
-				section, err := strconv.Atoi(strings.TrimSpace(tds[2]))
+				section, err := safecast.Atoi8(strings.TrimSpace(tds[2]))
 				if err != nil {
 					return
 				}
 
-				chr, err := strconv.Atoi(strings.TrimSpace(tds[3]))
+				chr, err := safecast.Atoi8(strings.TrimSpace(tds[3]))
 				if err != nil {
 					return
 				}
@@ -214,10 +221,6 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 		}
 	}
 
-	if len(subjects) == 0 {
-		return dtos.ErrFailedToScrape
-	}
-
 	*schedule = append(*schedule, dtos.ScheduleResponse{
 		Id:           cuid.Slug(),
 		SessionName:  *sessionName,
@@ -227,3 +230,4 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 
 	return nil
 }
+
