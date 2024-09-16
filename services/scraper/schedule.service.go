@@ -13,15 +13,14 @@ import (
 	"github.com/nrmnqdds/gomaluum-api/internal"
 )
 
-var logger = internal.NewLogger()
-
 func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
 	var (
-		c        = colly.NewCollector()
-		schedule []dtos.ScheduleResponse
-		wg       sync.WaitGroup
-		mu       sync.Mutex
-		isLatest = e.QueryParam("latest")
+		c              = colly.NewCollector()
+		schedule       []dtos.ScheduleResponse
+		wg             sync.WaitGroup
+		mu             sync.Mutex
+		isLatest       = e.QueryParam("latest")
+		sessionQueries = []string{}
 	)
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
@@ -37,8 +36,6 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookie.Value)
 		r.Headers.Set("User-Agent", internal.RandomString())
 	})
-
-	sessionQueries := []string{}
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
 		if isLatest == "true" {
