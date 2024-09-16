@@ -11,7 +11,6 @@ import (
 	"github.com/lucsky/cuid"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/internal"
-	"github.com/rung/go-safecast"
 )
 
 var logger = internal.NewLogger()
@@ -115,15 +114,8 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			if len(tds) == 9 {
 				courseCode := strings.TrimSpace(tds[0])
 				courseName := strings.TrimSpace(tds[1])
-				section, err := safecast.Atoi8(strings.TrimSpace(tds[2]))
-				if err != nil {
-					return
-				}
-
-				chr, err := safecast.Atoi8(strings.TrimSpace(tds[3]))
-				if err != nil {
-					return
-				}
+				section := []uint8(strings.TrimSpace(tds[2]))
+				chr := []uint8(strings.TrimSpace(tds[3]))
 
 				_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
 
@@ -153,8 +145,8 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 					Id:         cuid.New(),
 					CourseCode: courseCode,
 					CourseName: courseName,
-					Section:    uint8(section),
-					Chr:        uint8(chr),
+					Section:    section[0],
+					Chr:        chr[0],
 					Timestamps: weekTime,
 					Venue:      venue,
 					Lecturer:   lecturer,
@@ -230,4 +222,3 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 
 	return nil
 }
-
