@@ -57,10 +57,8 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 
 		sessionName := e.ChildText("a")
 
-		mu.Lock()
 		wg.Add(1)
-		go getScheduleFromSession(c, &latestSession, &sessionName, &schedule, &wg)
-		mu.Unlock()
+		go getScheduleFromSession(c, &latestSession, &sessionName, &schedule, &wg, &mu)
 	})
 
 	if err := c.Visit(internal.IMALUUM_SCHEDULE_PAGE); err != nil {
@@ -68,12 +66,6 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 	}
 
 	wg.Wait()
-
-	// Get the number of running Goroutines
-	// import "runtime"
-	// numGoroutines := runtime.NumGoroutine()
-
-	// logger.Infof("Number of Running Goroutines: %d\n", numGoroutines)
 
 	if len(schedule) == 0 {
 		return nil, dtos.ErrFailedToScrape
@@ -86,131 +78,116 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 	return schedule, nil
 }
 
-func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, schedule *[]dtos.ScheduleResponse, wg *sync.WaitGroup) *dtos.CustomError {
+func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, schedule *[]dtos.ScheduleResponse, wg *sync.WaitGroup, mu *sync.Mutex) *dtos.CustomError {
 	defer wg.Done()
+	defer mu.Unlock()
 
 	url := internal.IMALUUM_SCHEDULE_PAGE + *sessionQuery
-	maxRetries := 1
-	retryCount := 0
 
 	subjects := []dtos.Subject{}
 
-	for retryCount <= maxRetries {
+	mu.Lock()
 
-		// Clear the subjects slice
-		subjects = []dtos.Subject{}
+	c.OnHTML(".box-body table.table.table-hover tr", func(e *colly.HTMLElement) {
+		tds := e.ChildTexts("td")
 
-		c.OnHTML(".box-body table.table.table-hover tr", func(e *colly.HTMLElement) {
-			tds := e.ChildTexts("td")
+		weekTime := []dtos.WeekTime{}
 
-			weekTime := []dtos.WeekTime{}
+		if len(tds) == 0 {
+			// Skip the first row
+			return
+		}
 
-			if len(tds) == 0 {
-				// Skip the first row
-				return
-			}
+		// Handles for perfect cell
+		if len(tds) == 9 {
+			courseCode := strings.TrimSpace(tds[0])
+			courseName := strings.TrimSpace(tds[1])
+			section := []uint8(strings.TrimSpace(tds[2]))
+			chr := []uint8(strings.TrimSpace(tds[3]))
 
-			// Handles for perfect cell
-			if len(tds) == 9 {
-				courseCode := strings.TrimSpace(tds[0])
-				courseName := strings.TrimSpace(tds[1])
-				section := []uint8(strings.TrimSpace(tds[2]))
-				chr := []uint8(strings.TrimSpace(tds[3]))
+			_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
 
-				_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
+			for _, day := range _days {
+				dayNum := internal.GetScheduleDays(day)
+				timeTemp := tds[6]
+				time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
 
-				for _, day := range _days {
-					dayNum := internal.GetScheduleDays(day)
-					timeTemp := tds[6]
-					time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
-
-					if len(time) != 2 {
-						continue
-					}
-
-					start := strings.TrimSpace(time[0])
-					end := strings.TrimSpace(time[1])
-
-					weekTime = append(weekTime, dtos.WeekTime{
-						Start: start,
-						End:   end,
-						Day:   dayNum,
-					})
+				if len(time) != 2 {
+					continue
 				}
 
-				venue := strings.TrimSpace(tds[7])
-				lecturer := strings.TrimSpace(tds[8])
+				start := strings.TrimSpace(time[0])
+				end := strings.TrimSpace(time[1])
 
-				subjects = append(subjects, dtos.Subject{
-					Id:         cuid.New(),
-					CourseCode: courseCode,
-					CourseName: courseName,
-					Section:    section[0],
-					Chr:        chr[0],
-					Timestamps: weekTime,
-					Venue:      venue,
-					Lecturer:   lecturer,
+				weekTime = append(weekTime, dtos.WeekTime{
+					Start: start,
+					End:   end,
+					Day:   dayNum,
 				})
-
 			}
 
-			// Handles for merged cell usually at time or day or venue
-			if len(tds) == 4 {
-				courseCode := subjects[len(subjects)-1].CourseCode
-				courseName := subjects[len(subjects)-1].CourseName
-				section := subjects[len(subjects)-1].Section
-				chr := subjects[len(subjects)-1].Chr
+			venue := strings.TrimSpace(tds[7])
+			lecturer := strings.TrimSpace(tds[8])
 
-				_days := strings.Split(strings.Replace(strings.TrimSpace(tds[0]), " ", "", -1), "-")
+			subjects = append(subjects, dtos.Subject{
+				Id:         cuid.New(),
+				CourseCode: courseCode,
+				CourseName: courseName,
+				Section:    section[0],
+				Chr:        chr[0],
+				Timestamps: weekTime,
+				Venue:      venue,
+				Lecturer:   lecturer,
+			})
 
-				for _, day := range _days {
-					dayNum := internal.GetScheduleDays(day)
-					timeTemp := tds[1]
-					time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
+		}
 
-					if len(time) != 2 {
-						continue
-					}
+		// Handles for merged cell usually at time or day or venue
+		if len(tds) == 4 {
+			courseCode := subjects[len(subjects)-1].CourseCode
+			courseName := subjects[len(subjects)-1].CourseName
+			section := subjects[len(subjects)-1].Section
+			chr := subjects[len(subjects)-1].Chr
 
-					start := strings.TrimSpace(time[0])
-					end := strings.TrimSpace(time[1])
+			_days := strings.Split(strings.Replace(strings.TrimSpace(tds[0]), " ", "", -1), "-")
 
-					weekTime = append(weekTime, dtos.WeekTime{
-						Start: start,
-						End:   end,
-						Day:   dayNum,
-					})
+			for _, day := range _days {
+				dayNum := internal.GetScheduleDays(day)
+				timeTemp := tds[1]
+				time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
+
+				if len(time) != 2 {
+					continue
 				}
 
-				venue := strings.TrimSpace(tds[2])
-				lecturer := strings.TrimSpace(tds[3])
+				start := strings.TrimSpace(time[0])
+				end := strings.TrimSpace(time[1])
 
-				subjects = append(subjects, dtos.Subject{
-					Id:         cuid.Slug(),
-					CourseCode: courseCode,
-					CourseName: courseName,
-					Section:    section,
-					Chr:        chr,
-					Timestamps: weekTime,
-					Venue:      venue,
-					Lecturer:   lecturer,
+				weekTime = append(weekTime, dtos.WeekTime{
+					Start: start,
+					End:   end,
+					Day:   dayNum,
 				})
 			}
-		})
 
-		if err := c.Visit(url); err != nil {
-			return dtos.ErrFailedToGoToURL
-		}
+			venue := strings.TrimSpace(tds[2])
+			lecturer := strings.TrimSpace(tds[3])
 
-		if len(subjects) > 0 {
-			break
+			subjects = append(subjects, dtos.Subject{
+				Id:         cuid.Slug(),
+				CourseCode: courseCode,
+				CourseName: courseName,
+				Section:    section,
+				Chr:        chr,
+				Timestamps: weekTime,
+				Venue:      venue,
+				Lecturer:   lecturer,
+			})
 		}
+	})
 
-		retryCount++
-		if retryCount <= maxRetries {
-			// Log retry attempt
-			logger.Infof("Retrying scrape for session %s (attempt %d)", *sessionName, retryCount)
-		}
+	if err := c.Visit(url); err != nil {
+		return dtos.ErrFailedToGoToURL
 	}
 
 	*schedule = append(*schedule, dtos.ScheduleResponse{
