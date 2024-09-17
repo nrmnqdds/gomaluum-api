@@ -15,8 +15,6 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-var logger = internal.NewLogger()
-
 func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
 	var (
 		c        = colly.NewCollector()
