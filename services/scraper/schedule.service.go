@@ -12,6 +12,7 @@ import (
 	"github.com/lucsky/cuid"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/rung/go-safecast"
 	"github.com/sourcegraph/conc/pool"
 )
 
@@ -68,7 +69,7 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 	}
 
 	p.Wait()
-  c.Wait()
+	c.Wait()
 
 	logger.Infof("Number of Goroutines: %d", runtime.NumGoroutine())
 
@@ -106,8 +107,16 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 		if len(tds) == 9 {
 			courseCode := strings.TrimSpace(tds[0])
 			courseName := strings.TrimSpace(tds[1])
-			section := []uint8(strings.TrimSpace(tds[2]))
-			chr := []uint8(strings.TrimSpace(tds[3]))
+
+			section, err := safecast.Atoi8(strings.TrimSpace(tds[2]))
+			if err != nil {
+				return
+			}
+
+			chr, err := safecast.Atoi8(strings.TrimSpace(tds[3]))
+			if err != nil {
+				return
+			}
 
 			_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
 
@@ -137,8 +146,8 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 				Id:         cuid.New(),
 				CourseCode: courseCode,
 				CourseName: courseName,
-				Section:    section[0],
-				Chr:        chr[0],
+				Section:    uint8(section),
+				Chr:        uint8(chr),
 				Timestamps: weekTime,
 				Venue:      venue,
 				Lecturer:   lecturer,
