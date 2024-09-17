@@ -1,7 +1,6 @@
 package scraper
 
 import (
-	"runtime"
 	"slices"
 	"sort"
 	"strings"
@@ -20,10 +19,12 @@ var logger = internal.NewLogger()
 
 func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
 	var (
-		c              = colly.NewCollector()
-		schedule       []dtos.ScheduleResponse
-		mu             sync.Mutex
-		isLatest       = e.QueryParam("latest")
+		c        = colly.NewCollector()
+		schedule []dtos.ScheduleResponse
+		mu       sync.Mutex
+		isLatest = e.QueryParam("latest")
+		// semester       = e.QueryParam("semester")
+		// year           = e.QueryParam("year")
 		sessionQueries = []string{}
 		p              = pool.New().WithMaxGoroutines(20)
 	)
@@ -51,10 +52,13 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 
 		latestSession := e.ChildAttr("a", "href")
 
+		// Check if the session is already in the list
 		if slices.Contains(sessionQueries, latestSession) {
+			// If it is, return
 			return
 		}
 
+		// If it's not, add it to the list
 		sessionQueries = append(sessionQueries, latestSession)
 
 		sessionName := e.ChildText("a")
@@ -70,8 +74,6 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 
 	p.Wait()
 	c.Wait()
-
-	logger.Infof("Number of Goroutines: %d", runtime.NumGoroutine())
 
 	if len(schedule) == 0 {
 		return nil, dtos.ErrFailedToScrape
@@ -174,6 +176,17 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			chr := subjects[len(subjects)-1].Chr
 
 			_days := strings.Split(strings.Replace(strings.TrimSpace(tds[0]), " ", "", -1), "-")
+
+			switch _days[0] {
+			case "MTW":
+				_days = []string{"M", "T", "W"}
+			case "TWTH":
+				_days = []string{"T", "W", "TH"}
+			case "MTWTH":
+				_days = []string{"M", "T", "W", "TH"}
+			case "MTWTHF":
+				_days = []string{"M", "T", "W", "TH", "F"}
+			}
 
 			for _, day := range _days {
 				dayNum := internal.GetScheduleDays(day)
