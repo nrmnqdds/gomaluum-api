@@ -96,6 +96,10 @@ func main() {
 	// This middleware is used to recover from panics anywhere in the chain, log the panic (and a stack trace), and set a status code of 500.
 	e.Use(middleware.Recover())
 
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "You look lost. Try /swagger/index.html")
+	})
+
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	e.GET("/ping", func(c echo.Context) error {

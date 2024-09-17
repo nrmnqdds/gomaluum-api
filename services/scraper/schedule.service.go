@@ -118,8 +118,10 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 				return
 			}
 
+			// Split the days
 			_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
 
+			// Handles weird ass day format
 			switch _days[0] {
 			case "MTW":
 				_days = []string{"M", "T", "W"}
@@ -173,8 +175,10 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			section := subjects[len(subjects)-1].Section
 			chr := subjects[len(subjects)-1].Chr
 
+			// Split the days
 			_days := strings.Split(strings.Replace(strings.TrimSpace(tds[0]), " ", "", -1), "-")
 
+			// Handles weird ass day format
 			switch _days[0] {
 			case "MTW":
 				_days = []string{"M", "T", "W"}
