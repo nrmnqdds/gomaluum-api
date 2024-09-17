@@ -120,6 +120,17 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 
 			_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
 
+			switch _days[0] {
+			case "MTW":
+				_days = []string{"M", "T", "W"}
+			case "TWTH":
+				_days = []string{"T", "W", "TH"}
+			case "MTWTH":
+				_days = []string{"M", "T", "W", "TH"}
+			case "MTWTHF":
+				_days = []string{"M", "T", "W", "TH", "F"}
+			}
+
 			for _, day := range _days {
 				dayNum := internal.GetScheduleDays(day)
 				timeTemp := tds[6]
