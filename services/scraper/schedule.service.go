@@ -3,6 +3,7 @@ package scraper
 import (
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -113,7 +114,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 				return
 			}
 
-			chr, err := safecast.Atoi8(strings.TrimSpace(tds[3]))
+			chr, err := strconv.ParseFloat(strings.TrimSpace(tds[3]), 32)
 			if err != nil {
 				return
 			}
@@ -160,7 +161,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 				CourseCode: courseCode,
 				CourseName: courseName,
 				Section:    uint8(section),
-				Chr:        uint8(chr),
+				Chr:        chr,
 				Timestamps: weekTime,
 				Venue:      venue,
 				Lecturer:   lecturer,

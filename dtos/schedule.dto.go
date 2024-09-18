@@ -11,7 +11,7 @@ type Subject struct {
 	CourseCode string     `json:"course_code"`
 	CourseName string     `json:"course_name"`
 	Section    uint8      `json:"section"`
-	Chr        uint8      `json:"chr"`
+	Chr        float64    `json:"chr"`
 	Timestamps []WeekTime `json:"timestamps"`
 	Venue      string     `json:"venue"`
 	Lecturer   string     `json:"lecturer"`
