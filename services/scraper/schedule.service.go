@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/gocolly/colly/v2"
-	"github.com/labstack/echo/v4"
 	"github.com/lucsky/cuid"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/internal"
@@ -16,7 +15,9 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError) {
+func ScheduleScraper(d *dtos.ScheduleRequestProps) ([]dtos.ScheduleResponse, *dtos.CustomError) {
+	e := d.Echo
+
 	var (
 		c        = colly.NewCollector()
 		schedule []dtos.ScheduleResponse
@@ -26,19 +27,23 @@ func ScheduleScraper(e echo.Context) ([]dtos.ScheduleResponse, *dtos.CustomError
 		// year           = e.QueryParam("year")
 		sessionQueries = []string{}
 		p              = pool.New().WithMaxGoroutines(20)
+		_cookie        string
 	)
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
-	if err != nil {
-		return nil, dtos.ErrUnauthorized
-	}
 
-	if cookie.Value == "" {
-		return nil, dtos.ErrUnauthorized
+	if err != nil {
+		if d.Token == "" {
+			return nil, dtos.ErrUnauthorized
+		}
+
+		_cookie = d.Token
+	} else {
+		_cookie = cookie.Value
 	}
 
 	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookie.Value)
+		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+_cookie)
 		r.Headers.Set("User-Agent", internal.RandomString())
 	})
 

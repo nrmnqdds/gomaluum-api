@@ -1,5 +1,7 @@
 package dtos
 
+import "github.com/labstack/echo/v4"
+
 type WeekTime struct {
 	Start string `json:"start"`
 	End   string `json:"end"`
@@ -22,4 +24,9 @@ type ScheduleResponse struct {
 	SessionName  string    `json:"session_name"`
 	SessionQuery string    `json:"session_query"`
 	Schedule     []Subject `json:"schedule"`
+}
+
+type ScheduleRequestProps struct {
+	Echo  echo.Context
+	Token string
 }

@@ -112,15 +112,19 @@ func main() {
 		return c.String(http.StatusOK, "pong")
 	})
 
-	e.POST("/api/login", controllers.LoginHandler)
+	g := e.Group("/api")
 
-	e.GET("/api/profile", controllers.GetProfileHandler)
+	g.POST("/login", controllers.LoginHandler)
 
-	e.GET("/api/schedule", controllers.GetScheduleHandler)
+	g.GET("/profile", controllers.GetProfileHandler)
 
-	e.GET("/api/result", controllers.GetResultHandler)
+	// Schedule
+	g.GET("/schedule", controllers.GetScheduleHandler)
+	g.POST("/schedule", controllers.PostScheduleHandler)
 
-	e.GET("/api/catalog", controllers.CatalogHandler)
+	g.GET("/result", controllers.GetResultHandler)
+
+	g.GET("/catalog", controllers.CatalogHandler)
 
 	e.Logger.Fatal(e.Start(":1323"))
 }
