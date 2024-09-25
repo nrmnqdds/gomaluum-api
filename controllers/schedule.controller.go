@@ -87,14 +87,10 @@ func PostScheduleHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, response)
 	}
 
-	logger.Infof("Successfully login! Token: %s", loginRes.Token)
-
 	schedule := dtos.ScheduleRequestProps{
 		Echo:  c,
 		Token: loginRes.Token,
 	}
-
-	logger.Infof("Schedule request props: %+v", schedule)
 
 	data, err := scraper.ScheduleScraper(&schedule)
 	if err != nil {

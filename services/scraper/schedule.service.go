@@ -151,6 +151,14 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 				start := strings.TrimSpace(time[0])
 				end := strings.TrimSpace(time[1])
 
+				if len(start) == 3 {
+					start = "0" + start
+				}
+
+				if len(end) == 3 {
+					end = "0" + end
+				}
+
 				weekTime = append(weekTime, dtos.WeekTime{
 					Start: start,
 					End:   end,
@@ -207,6 +215,13 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 
 				start := strings.TrimSpace(time[0])
 				end := strings.TrimSpace(time[1])
+
+				if len(start) == 3 {
+					start = "0" + start
+				}
+				if len(end) == 3 {
+					end = "0" + end
+				}
 
 				weekTime = append(weekTime, dtos.WeekTime{
 					Start: start,
