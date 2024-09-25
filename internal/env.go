@@ -3,6 +3,7 @@ package internal
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -15,5 +16,5 @@ func GetEnv(key string) string {
 
 	log.Printf("env-%s: %s", key, os.Getenv(key))
 
-	return os.Getenv(key)
+	return strings.TrimSpace(os.Getenv(key))
 }
