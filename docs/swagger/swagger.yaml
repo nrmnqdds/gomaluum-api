@@ -76,4 +76,23 @@ paths:
             type: object
       tags:
       - scraper
+    post:
+      description: Login and get schedule from i-Ma'luum
+      parameters:
+      - description: User object
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.LoginDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - scraper
 swagger: "2.0"

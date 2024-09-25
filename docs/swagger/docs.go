@@ -107,6 +107,35 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "description": "Login and get schedule from i-Ma'luum",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scraper"
+                ],
+                "parameters": [
+                    {
+                        "description": "User object",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.LoginDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         }
     },

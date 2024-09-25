@@ -44,6 +44,13 @@ func GetScheduleHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
+// @Title PostScheduleHandler
+// @Description Login and get schedule from i-Ma'luum
+// @Tags scraper
+// @Produce json
+// @Param user body dtos.LoginDTO true "User object"
+// @Success 200 {object} map[string]interface{}
+// @Router /api/schedule [post]
 func PostScheduleHandler(c echo.Context) error {
 	user := dtos.LoginDTO{}
 
@@ -68,16 +75,6 @@ func PostScheduleHandler(c echo.Context) error {
 		logger.Error("Invalid request payload!", validationErr)
 		return c.JSON(http.StatusBadRequest, response)
 	}
-
-	// Set cookie to delete the previous cookie
-	c.SetCookie(&http.Cookie{
-		Name:   "MOD_AUTH_CAS",
-		Value:  "test",
-		Path:   "/",
-		MaxAge: -1,
-
-		HttpOnly: true,
-	})
 
 	loginRes, err := auth.LoginUser(&user)
 	if err != nil {
