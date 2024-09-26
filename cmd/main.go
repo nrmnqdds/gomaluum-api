@@ -1,8 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"runtime/debug"
 	"strings"
 
 	otelmid "go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
@@ -11,6 +16,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/maruel/panicparse/v2/stack"
 	"github.com/nrmnqdds/gomaluum-api/controllers"
 	_ "github.com/nrmnqdds/gomaluum-api/docs/swagger"
 	"github.com/nrmnqdds/gomaluum-api/internal"
@@ -77,6 +83,22 @@ func initTracer() func(context.Context) error {
 // @description This is a simple API for Gomaluum project.
 func main() {
 	e := echo.New()
+
+	parseStack := func(rawStack []byte) stack.Stack {
+		s, _, err := stack.ScanSnapshot(bytes.NewReader(rawStack), io.Discard, stack.DefaultOpts())
+		if err != nil && err != io.EOF {
+			panic(err)
+		}
+
+		if len(s.Goroutines) > 1 {
+			panic(errors.New("provided stacktrace had more than one goroutine"))
+		}
+
+		return s.Goroutines[0].Signature.Stack
+	}
+
+	parsedStack := parseStack(debug.Stack())
+	fmt.Printf("parsedStack: %#v", parsedStack)
 
 	cleanup := initTracer()
 	defer func() {
