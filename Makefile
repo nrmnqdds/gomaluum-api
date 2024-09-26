@@ -1,5 +1,5 @@
 dev:
-	go run ./cmd/main.go
+	./dev.sh
 
 benchmark:
 	cd test && go test -bench=.
