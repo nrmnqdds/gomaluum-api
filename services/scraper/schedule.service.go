@@ -15,7 +15,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-func ScheduleScraper(d *dtos.ScheduleRequestProps) ([]dtos.ScheduleResponse, *dtos.CustomError) {
+func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *dtos.CustomError) {
 	e := d.Echo
 
 	var (
@@ -87,7 +87,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) ([]dtos.ScheduleResponse, *dt
 		return internal.CompareSessionNames(schedule[i].SessionName, schedule[j].SessionName)
 	})
 
-	return schedule, nil
+	return &schedule, nil
 }
 
 func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, schedule *[]dtos.ScheduleResponse, mu *sync.Mutex) {
