@@ -1,5 +1,5 @@
 FROM golang:1.23.1-alpine AS build
-LABEL org.opencontainers.image.source=https://github.com/nrmnqdds/gomaluum-api
+LABEL org.opencontainers.image.source = "https://github.com/nrmnqdds/gomaluum-api"
 
 WORKDIR /app
 
