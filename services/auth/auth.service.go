@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nrmnqdds/gomaluum-api/dtos"
+	"github.com/nrmnqdds/gomaluum-api/internal"
 )
 
 var (
@@ -17,11 +18,17 @@ var (
 
 func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) {
 	jar, _ := cookiejar.New(nil)
+
+	logger := internal.NewLogger()
 	client = &http.Client{
 		Jar:     jar,
-		Timeout: time.Second,
+		Timeout: 10 * time.Second,
 	}
-	urlObj, _ = url.Parse("https://imaluum.iium.edu.my/home")
+	urlObj, err := url.Parse("https://imaluum.iium.edu.my/home")
+	if err != nil {
+		logger.Errorf("Failed to parse url: %v", err)
+		return nil, dtos.ErrFailedToLogin
+	}
 
 	formVal := url.Values{
 		"username":    {user.Username},
@@ -37,6 +44,7 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 
 	resp_first, err := client.Do(req_first)
 	if err != nil {
+		logger.Errorf("Failed to login first request: %v", err)
 		return nil, dtos.ErrFailedToLogin
 	}
 	resp_first.Body.Close()
@@ -50,6 +58,7 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 
 	resp, err := client.Do(req_second)
 	if err != nil {
+		logger.Errorf("Failed to login second request: %v", err)
 		return nil, dtos.ErrFailedToLogin
 	}
 	resp.Body.Close()
