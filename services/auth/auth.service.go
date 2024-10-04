@@ -5,26 +5,19 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/internal"
-)
-
-var (
-	client *http.Client
-	urlObj *url.URL
 )
 
 func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) {
 	jar, _ := cookiejar.New(nil)
 
 	logger := internal.NewLogger()
-	client = &http.Client{
-		Jar:     jar,
-		Timeout: 10 * time.Second,
+	client := &http.Client{
+		Jar: jar,
 	}
-	_, err := url.Parse("https://imaluum.iium.edu.my/home")
+	urlObj, err := url.Parse("https://imaluum.iium.edu.my/home")
 	if err != nil {
 		logger.Errorf("Failed to parse url: %v", err)
 		return nil, dtos.ErrFailedToLogin
