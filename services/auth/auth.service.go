@@ -24,7 +24,7 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 		Jar:     jar,
 		Timeout: 10 * time.Second,
 	}
-	urlObj, err := url.Parse("https://imaluum.iium.edu.my/home")
+	_, err := url.Parse("https://imaluum.iium.edu.my/home")
 	if err != nil {
 		logger.Errorf("Failed to parse url: %v", err)
 		return nil, dtos.ErrFailedToLogin
