@@ -12,6 +12,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags="-s -w" -o /app/gomaluum cmd/m
 
 FROM gcr.io/distroless/static-debian11:debug AS final
 COPY --from=build /app/gomaluum /
+COPY --from=build /app/dtos/iium_2024_2025_1.json /  
+
+ENV ENVIRONMENT=production
 
 USER nonroot:nonroot
 
