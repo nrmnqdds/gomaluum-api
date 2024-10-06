@@ -18,6 +18,6 @@ ENV ENVIRONMENT=production
 
 USER nonroot:nonroot
 
-EXPOSE 1323
+EXPOSE 8080
 
 ENTRYPOINT ["/gomaluum"]
