@@ -148,5 +148,5 @@ func main() {
 
 	g.GET("/catalog", controllers.CatalogHandler)
 
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start(":1323"))
 }
