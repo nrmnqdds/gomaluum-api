@@ -49,7 +49,6 @@ func LoginHandler(c echo.Context) error {
 	c.SetCookie(&http.Cookie{
 		Name:   "MOD_AUTH_CAS",
 		Value:  "test",
-		Path:   "/",
 		MaxAge: -1,
 
 		HttpOnly: true,
@@ -69,6 +68,7 @@ func LoginHandler(c echo.Context) error {
 	c.SetCookie(&http.Cookie{
 		Name:  "MOD_AUTH_CAS",
 		Value: data.Token,
+		Path:  "/",
 		// Set the cookie to expire in 1 hour
 		MaxAge: 3600,
 	})
