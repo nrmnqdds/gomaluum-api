@@ -74,7 +74,7 @@ func LoginHandler(c echo.Context) error {
 	})
 
 	response := dtos.Response{
-		Status:  http.StatusOK,
+		Status:  http.StatusCreated,
 		Message: "Successfully login!",
 		Data:    data,
 	}
