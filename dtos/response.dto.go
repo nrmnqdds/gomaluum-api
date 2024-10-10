@@ -1,7 +1,7 @@
 package dtos
 
 type Response struct {
-	Status  int         `json:"status"`
-	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
+	Message string      `json:"message"`
+	Status  int         `json:"status"`
 }

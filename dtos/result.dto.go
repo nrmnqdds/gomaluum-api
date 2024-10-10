@@ -1,6 +1,7 @@
 package dtos
 
 type ResultResponse struct {
+	ID           string   `json:"id"`
 	SessionName  string   `json:"session_name"`
 	SessionQuery string   `json:"session_query"`
 	GpaValue     string   `json:"gpa_value"`

@@ -1,4 +1,10 @@
+linters-settings:
+  govet:
+    enable:
+      - fieldalignment
 linters:
   disable:
     # for swagger purpose
     - staticcheck
+  enable:
+    - govet

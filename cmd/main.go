@@ -149,6 +149,7 @@ func main() {
 	g.POST("/schedule", controllers.PostScheduleHandler)
 
 	g.GET("/result", controllers.GetResultHandler)
+	g.POST("/result", controllers.PostResultHandler)
 
 	g.GET("/catalog", controllers.CatalogHandler)
 

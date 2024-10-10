@@ -1,38 +1,73 @@
 package scraper
 
 import (
-	_"regexp"
-  _"strings"
+	"slices"
+	"sort"
 	"sync"
 
 	"github.com/gocolly/colly/v2"
-	"github.com/labstack/echo/v4"
+	"github.com/lucsky/cuid"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/sourcegraph/conc/pool"
 )
 
-var result []dtos.ResultResponse
+var logger = internal.NewLogger()
 
-func ResultScraper(e echo.Context) ([]dtos.ResultResponse, *dtos.CustomError) {
-	c := colly.NewCollector()
+func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.CustomError) {
+	e := d.Echo
 
-	var wg sync.WaitGroup
-	resultChan := make(chan []dtos.ResultResponse, 100)
+	var (
+		c        = colly.NewCollector()
+		result   []dtos.ResultResponse
+		mu       sync.Mutex
+		isLatest = e.QueryParam("latest")
+		// semester       = e.QueryParam("semester")
+		// year           = e.QueryParam("year")
+		sessionQueries = []string{}
+		p              = pool.New().WithMaxGoroutines(20)
+		_cookie        string
+	)
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
+
 	if err != nil {
-		return nil, dtos.ErrUnauthorized
+		if d.Token == "" {
+			return nil, dtos.ErrUnauthorized
+		}
+
+		_cookie = d.Token
+	} else {
+		_cookie = cookie.Value
 	}
 
 	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookie.Value)
+		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+_cookie)
 		r.Headers.Set("User-Agent", internal.RandomString())
 	})
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
-		e.ForEach("a", func(i int, element *colly.HTMLElement) {
-			wg.Add(1)
-			go getResultFromSession(c, element.Attr("href"), element.Text, cookie.Value, &wg, resultChan)
+		if isLatest == "true" {
+			if len(sessionQueries) > 0 {
+				return
+			}
+		}
+
+		latestSession := e.ChildAttr("a", "href")
+
+		// Check if the session is already in the list
+		if slices.Contains(sessionQueries, latestSession) {
+			// If it is, return
+			return
+		}
+
+		// If it's not, add it to the list
+		sessionQueries = append(sessionQueries, latestSession)
+
+		sessionName := e.ChildText("a")
+
+		p.Go(func() {
+			getResultFromSession(c, &latestSession, &sessionName, &result, &mu)
 		})
 	})
 
@@ -40,90 +75,53 @@ func ResultScraper(e echo.Context) ([]dtos.ResultResponse, *dtos.CustomError) {
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
-	wg.Wait()
-	close(resultChan)
-	return result, nil
+	p.Wait()
+	c.Wait()
+
+	if len(result) == 0 {
+		return nil, dtos.ErrFailedToScrape
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return internal.CompareSessionNames(result[i].SessionName, result[j].SessionName)
+	})
+
+	return &result, nil
 }
 
-func getResultFromSession(c *colly.Collector, sessionQuery string, sessionName string, cookieValue string, wg *sync.WaitGroup, ch chan<- []dtos.ResultResponse) *dtos.CustomError {
-	defer wg.Done()
+func getResultFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, result *[]dtos.ResultResponse, mu *sync.Mutex) {
+	defer mu.Unlock()
 
-	url := internal.IMALUUM_RESULT_PAGE + sessionQuery
+	url := internal.IMALUUM_RESULT_PAGE + *sessionQuery
 
-	// subjects := []dtos.Result{}
+	mu.Lock()
 
-	logger := internal.NewLogger()
+	c.OnHTML(".box-body table.table.table-hover tr", func(e *colly.HTMLElement) {
+		tds := e.ChildTexts("td")
 
-	c.OnHTML(".box-body table.table.table-hover", func(e *colly.HTMLElement) {
-		e.ForEach("tr", func(i int, element *colly.HTMLElement) {
-			tds := element.ChildTexts("td")
+		if len(tds) == 0 {
+			// Skip the first row
+			return
+		}
+		// grab last td
+		// lastTD := tds[len(tds)-1]
+		// logger.Infof("Last TD: %s", lastTD)
 
-			if len(tds) == 0 {
-				// Skip the first row
-				return
-			}
-
-      logger.Info("tds: ", tds)
-      // logger.Info("tds[7]: ", tds[7])
-
-			// TODO
-			// Takbayar yuran
-			// if len(tds) >= 4 {
-			// 	courseCode := strings.TrimSpace(tds[0])
-			// 	if strings.Split(courseCode, "  ")[0] == "Total Credit Points" {
-			// 		return
-			// 	}
-			//
-			// 	courseName := strings.TrimSpace(tds[1])
-			// 	courseGrade := strings.TrimSpace(tds[2])
-			// 	courseCredit := strings.TrimSpace(tds[3])
-			//
-			// 	subjects = append(subjects, dtos.Result{
-			// 		CourseCode:   courseCode,
-			// 		CourseName:   courseName,
-			// 		CourseGrade:  courseGrade,
-			// 		CourseCredit: courseCredit,
-			// 	})
-			//
-			// }
-
-			// re := regexp.MustCompile(`/\s{2,}/`)
-			// neutralized := re.Split(strings.TrimSpace(tds[1]), -1)
-
-			// neutralized := strings.TrimSpace(tds[1])
-
-			// if len(neutralized) == 0 {
-			// 	return
-			// }
-
-			// logger.Info("neutralized: ", neutralized)
-
-			// gpaValue := neutralized[2]
-			// status := neutralized[3]
-			// remarks := neutralized[4]
-			//
-			// logger.Info("GPA Value: ", gpaValue)
-			// logger.Info("Status: ", status)
-			// logger.Info("Remarks: ", remarks)
-			//
-			//       const neutralized1 = tds[1].textContent.trim().split(/\s{2,}/) || [];
-			// const gpaValue = neutralized1[2];
-			// const status = neutralized1[3];
-			// const remarks = neutralized1[4];
-			//
-			// const neutralized2 = tds[3].textContent.trim().split(/\s{2,}/) || [];
-			// const cgpaValue = neutralized2[2];
-			//
-			// // Remove the last row
-			// rows.pop();
-		})
+		logger.Infof("TDs: %v", tds)
 	})
 
 	if err := c.Visit(url); err != nil {
-		return dtos.ErrFailedToGoToURL
+		return
 	}
 
-	ch <- result
-
-	return nil
+	*result = append(*result, dtos.ResultResponse{
+		ID:           cuid.Slug(),
+		SessionName:  *sessionName,
+		SessionQuery: *sessionQuery,
+		GpaValue:     "",
+		CgpaValue:    "",
+		Status:       "",
+		Remarks:      "",
+		Result:       []dtos.Result{},
+	})
 }

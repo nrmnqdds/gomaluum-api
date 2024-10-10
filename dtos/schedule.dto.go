@@ -12,11 +12,11 @@ type Subject struct {
 	Id         string     `json:"id"`
 	CourseCode string     `json:"course_code"`
 	CourseName string     `json:"course_name"`
-	Section    uint8      `json:"section"`
-	Chr        float64    `json:"chr"`
-	Timestamps []WeekTime `json:"timestamps"`
 	Venue      string     `json:"venue"`
 	Lecturer   string     `json:"lecturer"`
+	Timestamps []WeekTime `json:"timestamps"`
+	Chr        float64    `json:"chr"`
+	Section    uint8      `json:"section"`
 }
 
 type ScheduleResponse struct {

@@ -2,8 +2,8 @@ package dtos
 
 type CustomError struct {
 	OriginalErr error
-	StatusCode  int    `json:"status,omitempty"`
 	Message     string `json:"message,omitempty"`
+	StatusCode  int    `json:"status,omitempty"`
 }
 
 var (
