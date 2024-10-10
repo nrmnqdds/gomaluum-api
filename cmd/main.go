@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	otelmid "go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	"golang.org/x/time/rate"
 
 	"google.golang.org/grpc/credentials"
 
@@ -121,6 +122,8 @@ func main() {
 
 	// Set up OpenTelemetry middleware
 	e.Use(otelmid.Middleware(serviceName))
+
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(20))))
 
 	// This middleware is used to recover from panics anywhere in the chain, log the panic (and a stack trace), and set a status code of 500.
 	e.Use(middleware.Recover())
