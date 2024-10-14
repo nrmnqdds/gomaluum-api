@@ -12,18 +12,13 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var (
-	ctx = context.Background()
-)
+var ctx = context.Background()
 
 func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) {
 	jar, _ := cookiejar.New(nil)
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     internal.GetEnv("REDIS_URL"),
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
+	opt, _ := redis.ParseURL("redis://default:35a8f8f1b9714c6893b809c8a2ea31e2@allowing-hornet-32763.upstash.io:32763")
+	redisClient := redis.NewClient(opt)
 
 	logger := internal.NewLogger()
 	client := &http.Client{
@@ -73,7 +68,7 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 	for _, cookie := range cookies {
 		if cookie.Name == "MOD_AUTH_CAS" {
 
-			err := rdb.Set(ctx, user.Username, user.Password, 0).Err()
+			err := redisClient.Set(ctx, user.Username, user.Password, 0).Err()
 			if err != nil {
 				logger.Warnf("Failed to set user password to redis: %v", err)
 			}

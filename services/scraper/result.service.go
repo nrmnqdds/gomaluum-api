@@ -93,19 +93,21 @@ func getResultFromSession(c *colly.Collector, sessionQuery *string, sessionName 
 	defer mu.Unlock()
 
 	url := internal.IMALUUM_RESULT_PAGE + *sessionQuery
+	logger.Infof("session name: %v", *sessionName)
+	logger.Infof("url %v", url)
 
 	mu.Lock()
 
-	c.OnHTML(".box-body table.table.table-hover tr", func(e *colly.HTMLElement) {
+	c.OnHTML(".box-body table.table.table-hover tbody tr", func(e *colly.HTMLElement) {
 		tds := e.ChildTexts("td")
 
-		if len(tds) == 0 {
-			// Skip the first row
-			return
-		}
-		// grab last td
-		// lastTD := tds[len(tds)-1]
-		// logger.Infof("Last TD: %s", lastTD)
+		// if len(tds) == 0 {
+		// 	// Skip the first row
+		// 	return
+		// }
+
+		// Remove last item in td
+		tds = tds[:len(tds)-1]
 
 		logger.Infof("TDs: %v", tds)
 	})

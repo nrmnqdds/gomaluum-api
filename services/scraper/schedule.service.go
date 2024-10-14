@@ -16,6 +16,9 @@ import (
 )
 
 func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *dtos.CustomError) {
+  logger := internal.NewLogger()
+
+  logger.Info("Schedule service called")
 	e := d.Echo
 
 	var (
@@ -34,6 +37,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 
 	if err != nil {
 		if d.Token == "" {
+      logger.Error("No cookie found!")
 			return nil, dtos.ErrUnauthorized
 		}
 
@@ -73,6 +77,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 	})
 
 	if err := c.Visit(internal.IMALUUM_SCHEDULE_PAGE); err != nil {
+    logger.Error("Failed to go to URL")
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
@@ -80,6 +85,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 	c.Wait()
 
 	if len(schedule) == 0 {
+    logger.Error("Schedule is empty")
 		return nil, dtos.ErrFailedToScrape
 	}
 
