@@ -7,7 +7,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
-	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/nrmnqdds/gomaluum-api/helpers"
 )
 
 // CatalogScraper
@@ -18,7 +18,7 @@ import (
 // @Success 200 {object} map[string]interface{}
 // @Router /api/catalog [get]
 func CatalogScraper(e echo.Context) (interface{}, *dtos.CustomError) {
-	logger := internal.NewLogger()
+	logger, _ := helpers.NewLogger()
 
 	basepath, err := os.Getwd()
 	if err != nil {
@@ -29,7 +29,7 @@ func CatalogScraper(e echo.Context) (interface{}, *dtos.CustomError) {
 
 	path := filepath.Join(basepath, "dtos/iium_2024_2025_1.json")
 
-	if internal.GetEnv("ENVIRONMENT") == "production" {
+	if helpers.GetEnv("ENVIRONMENT") == "production" {
 		path = filepath.Join(basepath, "iium_2024_2025_1.json")
 	}
 

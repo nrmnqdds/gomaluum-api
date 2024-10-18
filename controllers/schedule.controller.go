@@ -4,14 +4,12 @@ import (
 	"net/http"
 
 	"github.com/nrmnqdds/gomaluum-api/dtos"
-	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/nrmnqdds/gomaluum-api/helpers"
 	"github.com/nrmnqdds/gomaluum-api/services/auth"
 	"github.com/nrmnqdds/gomaluum-api/services/scraper"
 
 	"github.com/labstack/echo/v4"
 )
-
-var logger = internal.NewLogger()
 
 // @Title GetScheduleHandler
 // @Description Get schedule from i-Ma'luum
@@ -20,6 +18,8 @@ var logger = internal.NewLogger()
 // @Success 200 {object} map[string]interface{}
 // @Router /api/schedule [get]
 func GetScheduleHandler(c echo.Context) error {
+	logger, _ := helpers.NewLogger()
+
 	schedule := dtos.ScheduleRequestProps{
 		Echo: c,
 	}
@@ -52,6 +52,7 @@ func GetScheduleHandler(c echo.Context) error {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/schedule [post]
 func PostScheduleHandler(c echo.Context) error {
+	logger, _ := helpers.NewLogger()
 	user := dtos.LoginDTO{}
 
 	if c.Bind(&user) != nil {
@@ -66,7 +67,7 @@ func PostScheduleHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
-	if validationErr := internal.Validator.Struct(&user); validationErr != nil {
+	if validationErr := helpers.Validator.Struct(&user); validationErr != nil {
 		response := dtos.Response{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid request payload!",

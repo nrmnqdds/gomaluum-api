@@ -20,7 +20,7 @@ import (
 	"github.com/maruel/panicparse/v2/stack"
 	"github.com/nrmnqdds/gomaluum-api/controllers"
 	_ "github.com/nrmnqdds/gomaluum-api/docs/swagger"
-	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/nrmnqdds/gomaluum-api/helpers"
 	echoSwagger "github.com/swaggo/echo-swagger"
 
 	"go.opentelemetry.io/otel"
@@ -33,14 +33,14 @@ import (
 )
 
 var (
-	serviceName  = internal.GetEnv("SERVICE_NAME")
-	collectorURL = internal.GetEnv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	insecure     = internal.GetEnv("INSECURE_MODE")
-	logger       = internal.NewLogger()
+	serviceName  = helpers.GetEnv("SERVICE_NAME")
+	collectorURL = helpers.GetEnv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	insecure     = helpers.GetEnv("INSECURE_MODE")
 )
 
 func initTracer() func(context.Context) error {
 	var secureOption otlptracegrpc.Option
+	logger, _ := helpers.NewLogger()
 
 	if strings.ToLower(insecure) == "false" || insecure == "0" || strings.ToLower(insecure) == "f" {
 		secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
@@ -56,7 +56,7 @@ func initTracer() func(context.Context) error {
 		),
 	)
 	if err != nil {
-		logger.Fatalf("Failed to create exporter: %v", err)
+		logger.Errorf("Failed to create exporter: %v", err)
 	}
 	resources, err := resource.New(
 		context.Background(),
@@ -84,6 +84,7 @@ func initTracer() func(context.Context) error {
 // @description This is a simple API for Gomaluum project.
 func main() {
 	e := echo.New()
+	logger, _ := helpers.NewLogger()
 
 	parseStack := func(rawStack []byte) stack.Stack {
 		s, _, err := stack.ScanSnapshot(bytes.NewReader(rawStack), io.Discard, stack.DefaultOpts())
@@ -104,7 +105,7 @@ func main() {
 	cleanup := initTracer()
 	defer func() {
 		if err := cleanup(context.Background()); err != nil {
-			logger.Fatalf("Failed to shutdown exporter: %v", err)
+			logger.Errorf("Failed to shutdown exporter: %v", err)
 		}
 	}()
 

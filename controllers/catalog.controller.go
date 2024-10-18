@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/nrmnqdds/gomaluum-api/dtos"
-	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/nrmnqdds/gomaluum-api/helpers"
 	"github.com/nrmnqdds/gomaluum-api/services/catalogs"
 
 	"github.com/labstack/echo/v4"
@@ -18,7 +18,7 @@ import (
 // @Success 200 {object} map[string]interface{}
 // @Router /api/catalog [get]
 func CatalogHandler(c echo.Context) error {
-	logger := internal.NewLogger()
+	logger, _ := helpers.NewLogger()
 
 	data, err := catalog.CatalogScraper(c)
 	if err != nil {

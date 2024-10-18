@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/nrmnqdds/gomaluum-api/dtos"
-	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/nrmnqdds/gomaluum-api/helpers"
 	"github.com/nrmnqdds/gomaluum-api/services/auth"
 
 	"github.com/labstack/echo/v4"
@@ -21,7 +21,7 @@ import (
 func LoginHandler(c echo.Context) error {
 	user := dtos.LoginDTO{}
 
-	logger := internal.NewLogger()
+	logger, _ := helpers.NewLogger()
 
 	if c.Bind(&user) != nil {
 
@@ -35,7 +35,7 @@ func LoginHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
-	if validationErr := internal.Validator.Struct(&user); validationErr != nil {
+	if validationErr := helpers.Validator.Struct(&user); validationErr != nil {
 		response := dtos.Response{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid request payload!",

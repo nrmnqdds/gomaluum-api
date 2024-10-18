@@ -8,11 +8,9 @@ import (
 	"github.com/gocolly/colly/v2"
 	"github.com/lucsky/cuid"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
-	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/nrmnqdds/gomaluum-api/helpers"
 	"github.com/sourcegraph/conc/pool"
 )
-
-var logger = internal.NewLogger()
 
 func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.CustomError) {
 	e := d.Echo
@@ -43,7 +41,7 @@ func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.
 
 	c.OnRequest(func(r *colly.Request) {
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+_cookie)
-		r.Headers.Set("User-Agent", internal.RandomString())
+		r.Headers.Set("User-Agent", helpers.RandomString())
 	})
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
@@ -71,7 +69,7 @@ func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.
 		})
 	})
 
-	if err := c.Visit(internal.IMALUUM_RESULT_PAGE); err != nil {
+	if err := c.Visit(helpers.IMALUUM_RESULT_PAGE); err != nil {
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
@@ -83,16 +81,17 @@ func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.
 	}
 
 	sort.Slice(result, func(i, j int) bool {
-		return internal.CompareSessionNames(result[i].SessionName, result[j].SessionName)
+		return helpers.CompareSessionNames(result[i].SessionName, result[j].SessionName)
 	})
 
 	return &result, nil
 }
 
 func getResultFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, result *[]dtos.ResultResponse, mu *sync.Mutex) {
+	logger, _ := helpers.NewLogger()
 	defer mu.Unlock()
 
-	url := internal.IMALUUM_RESULT_PAGE + *sessionQuery
+	url := helpers.IMALUUM_RESULT_PAGE + *sessionQuery
 	logger.Infof("session name: %v", *sessionName)
 	logger.Infof("url %v", url)
 

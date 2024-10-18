@@ -7,7 +7,7 @@ import (
 	"github.com/gocolly/colly/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
-	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/nrmnqdds/gomaluum-api/helpers"
 )
 
 func ProfileScraper(e echo.Context) (*dtos.Profile, *dtos.CustomError) {
@@ -26,7 +26,7 @@ func ProfileScraper(e echo.Context) (*dtos.Profile, *dtos.CustomError) {
 
 	c.OnRequest(func(r *colly.Request) {
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookie.Value)
-		r.Headers.Set("User-Agent", internal.RandomString())
+		r.Headers.Set("User-Agent", helpers.RandomString())
 	})
 
 	c.OnHTML("body", func(e *colly.HTMLElement) {
@@ -36,13 +36,13 @@ func ProfileScraper(e echo.Context) (*dtos.Profile, *dtos.CustomError) {
 		profile.MatricNo = strings.TrimSpace(strings.Split(_matricNo, "|")[0])
 	})
 
-	if err := c.Visit(internal.IMALUUM_PROFILE_PAGE); err != nil {
+	if err := c.Visit(helpers.IMALUUM_PROFILE_PAGE); err != nil {
 		return nil, dtos.ErrInternalServerError
 	}
 
 	profile.ImageURL = fmt.Sprintf("https://smartcard.iium.edu.my/packages/card/printing/camera/uploads/original/%s.jpeg", profile.MatricNo)
 
-	if validationErr := internal.Validator.Struct(&profile); validationErr != nil {
+	if validationErr := helpers.Validator.Struct(&profile); validationErr != nil {
 		return nil, dtos.ErrFailedToScrape
 	}
 

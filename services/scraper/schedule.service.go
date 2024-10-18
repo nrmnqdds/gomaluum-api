@@ -10,15 +10,15 @@ import (
 	"github.com/gocolly/colly/v2"
 	"github.com/lucsky/cuid"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
-	"github.com/nrmnqdds/gomaluum-api/internal"
+	"github.com/nrmnqdds/gomaluum-api/helpers"
 	"github.com/rung/go-safecast"
 	"github.com/sourcegraph/conc/pool"
 )
 
 func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *dtos.CustomError) {
-  logger := internal.NewLogger()
+	logger, _ := helpers.NewLogger()
 
-  logger.Info("Schedule service called")
+	logger.Info("Schedule service called")
 	e := d.Echo
 
 	var (
@@ -37,7 +37,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 
 	if err != nil {
 		if d.Token == "" {
-      logger.Error("No cookie found!")
+			logger.Error("No cookie found!")
 			return nil, dtos.ErrUnauthorized
 		}
 
@@ -48,7 +48,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 
 	c.OnRequest(func(r *colly.Request) {
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+_cookie)
-		r.Headers.Set("User-Agent", internal.RandomString())
+		r.Headers.Set("User-Agent", helpers.RandomString())
 	})
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
@@ -76,8 +76,8 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 		})
 	})
 
-	if err := c.Visit(internal.IMALUUM_SCHEDULE_PAGE); err != nil {
-    logger.Error("Failed to go to URL")
+	if err := c.Visit(helpers.IMALUUM_SCHEDULE_PAGE); err != nil {
+		logger.Error("Failed to go to URL")
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
@@ -85,12 +85,12 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 	c.Wait()
 
 	if len(schedule) == 0 {
-    logger.Error("Schedule is empty")
+		logger.Error("Schedule is empty")
 		return nil, dtos.ErrFailedToScrape
 	}
 
 	sort.Slice(schedule, func(i, j int) bool {
-		return internal.CompareSessionNames(schedule[i].SessionName, schedule[j].SessionName)
+		return helpers.CompareSessionNames(schedule[i].SessionName, schedule[j].SessionName)
 	})
 
 	return &schedule, nil
@@ -99,7 +99,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, schedule *[]dtos.ScheduleResponse, mu *sync.Mutex) {
 	defer mu.Unlock()
 
-	url := internal.IMALUUM_SCHEDULE_PAGE + *sessionQuery
+	url := helpers.IMALUUM_SCHEDULE_PAGE + *sessionQuery
 
 	subjects := []dtos.Subject{}
 
@@ -146,7 +146,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			}
 
 			for _, day := range _days {
-				dayNum := internal.GetScheduleDays(day)
+				dayNum := helpers.GetScheduleDays(day)
 				timeTemp := tds[6]
 				time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
 
@@ -211,7 +211,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			}
 
 			for _, day := range _days {
-				dayNum := internal.GetScheduleDays(day)
+				dayNum := helpers.GetScheduleDays(day)
 				timeTemp := tds[1]
 				time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
 
