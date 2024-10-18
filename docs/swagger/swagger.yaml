@@ -15,6 +15,21 @@ info:
   title: Gomaluum API
   version: "1.0"
 paths:
+  /api/ads:
+    post:
+      consumes:
+      - application/json
+      description: SOUQ Ads
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - ads
   /api/catalog:
     get:
       description: Get catalog

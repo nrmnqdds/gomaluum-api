@@ -154,5 +154,7 @@ func main() {
 
 	g.GET("/catalog", controllers.CatalogHandler)
 
+	g.GET("/ads", controllers.AdsHandler)
+
 	e.Logger.Fatal(e.Start(":1323"))
 }
