@@ -15,6 +15,7 @@ func AdsScraper() (*[]dtos.Ads, *dtos.CustomError) {
 
 	c.OnHTML("div[style*='width:100%; clear:both;height:100px']", func(e *colly.HTMLElement) {
 		ads = append(ads, dtos.Ads{
+      Title:    strings.TrimSpace(e.ChildText("a")),
 			ImageURL: strings.TrimSpace(e.ChildAttr("img", "src")),
 			Link:     strings.TrimSpace(e.ChildAttr("a", "href")),
 			ID:       cuid.New(),
