@@ -69,7 +69,7 @@ func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.
 		})
 	})
 
-	if err := c.Visit(helpers.IMALUUM_RESULT_PAGE); err != nil {
+	if err := c.Visit(helpers.ImaluumResultPage); err != nil {
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
@@ -91,7 +91,7 @@ func getResultFromSession(c *colly.Collector, sessionQuery *string, sessionName 
 	logger, _ := helpers.NewLogger()
 	defer mu.Unlock()
 
-	url := helpers.IMALUUM_RESULT_PAGE + *sessionQuery
+	url := helpers.ImaluumResultPage + *sessionQuery
 	logger.Infof("session name: %v", *sessionName)
 	logger.Infof("url %v", url)
 

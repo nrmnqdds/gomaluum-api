@@ -5,7 +5,7 @@ import (
 
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/helpers"
-	"github.com/nrmnqdds/gomaluum-api/services/catalogs"
+	catalog "github.com/nrmnqdds/gomaluum-api/services/catalogs"
 
 	"github.com/labstack/echo/v4"
 )
@@ -20,7 +20,7 @@ import (
 func CatalogHandler(c echo.Context) error {
 	logger, _ := helpers.NewLogger()
 
-	data, err := catalog.CatalogScraper(c)
+	data, err := catalog.CatalogScraper()
 	if err != nil {
 		response := dtos.Response{
 			Status:  err.StatusCode,

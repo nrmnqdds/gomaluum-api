@@ -4,8 +4,10 @@ LABEL org.opencontainers.image.source=https://github.com/nrmnqdds/gomaluum-api
 WORKDIR /app
 
 COPY go.mod go.sum ./
-RUN go mod download \
-  && go mod verify
+
+RUN go mod download 
+RUN go mod verify
+
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags="-s -w" -o /app/gomaluum cmd/main.go

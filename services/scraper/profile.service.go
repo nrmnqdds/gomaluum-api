@@ -36,7 +36,7 @@ func ProfileScraper(e echo.Context) (*dtos.Profile, *dtos.CustomError) {
 		profile.MatricNo = strings.TrimSpace(strings.Split(_matricNo, "|")[0])
 	})
 
-	if err := c.Visit(helpers.IMALUUM_PROFILE_PAGE); err != nil {
+	if err := c.Visit(helpers.ImaluumProfilePage); err != nil {
 		return nil, dtos.ErrInternalServerError
 	}
 

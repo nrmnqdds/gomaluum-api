@@ -76,7 +76,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 		})
 	})
 
-	if err := c.Visit(helpers.IMALUUM_SCHEDULE_PAGE); err != nil {
+	if err := c.Visit(helpers.ImaluumSchedulePage); err != nil {
 		logger.Error("Failed to go to URL")
 		return nil, dtos.ErrFailedToGoToURL
 	}
@@ -99,7 +99,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, schedule *[]dtos.ScheduleResponse, mu *sync.Mutex) {
 	defer mu.Unlock()
 
-	url := helpers.IMALUUM_SCHEDULE_PAGE + *sessionQuery
+	url := helpers.ImaluumSchedulePage + *sessionQuery
 
 	subjects := []dtos.Subject{}
 
@@ -176,7 +176,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			lecturer := strings.TrimSpace(tds[8])
 
 			subjects = append(subjects, dtos.Subject{
-				Id:         cuid.New(),
+				ID:         cuid.New(),
 				CourseCode: courseCode,
 				CourseName: courseName,
 				Section:    uint8(section),
@@ -240,7 +240,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			lecturer := strings.TrimSpace(tds[3])
 
 			subjects = append(subjects, dtos.Subject{
-				Id:         cuid.Slug(),
+				ID:         cuid.Slug(),
 				CourseCode: courseCode,
 				CourseName: courseName,
 				Section:    section,
@@ -257,7 +257,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 	}
 
 	*schedule = append(*schedule, dtos.ScheduleResponse{
-		Id:           cuid.Slug(),
+		ID:           cuid.Slug(),
 		SessionName:  *sessionName,
 		SessionQuery: *sessionQuery,
 		Schedule:     subjects,

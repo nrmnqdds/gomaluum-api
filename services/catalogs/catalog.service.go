@@ -1,23 +1,15 @@
-package catalog
+package services
 
 import (
 	"encoding/json"
 	"os"
 	"path/filepath"
 
-	"github.com/labstack/echo/v4"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/helpers"
 )
 
-// CatalogScraper
-// @Title CatalogScraper
-// @Description Get catalog
-// @Tags catalog
-// @Produce json
-// @Success 200 {object} map[string]interface{}
-// @Router /api/catalog [get]
-func CatalogScraper(e echo.Context) (interface{}, *dtos.CustomError) {
+func CatalogScraper() (interface{}, *dtos.CustomError) {
 	logger, _ := helpers.NewLogger()
 
 	basepath, err := os.Getwd()

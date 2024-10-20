@@ -42,26 +42,26 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 
 	// First request
 	logger.Info("Making first request")
-	req_first, _ := http.NewRequest("GET", "https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", nil)
-	setHeaders(req_first)
+	reqFirst, _ := http.NewRequest("GET", "https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", nil)
+	setHeaders(reqFirst)
 
-	resp_first, err := client.Do(req_first)
+	respFirst, err := client.Do(reqFirst)
 	if err != nil {
 		logger.Errorf("Failed to login first request: %v", err)
 		tracerr.PrintSourceColor(err)
 		return nil, dtos.ErrFailedToLogin
 	}
-	resp_first.Body.Close()
+	respFirst.Body.Close()
 
-	client.Jar.SetCookies(urlObj, resp_first.Cookies())
+	client.Jar.SetCookies(urlObj, respFirst.Cookies())
 
 	// Second request
 	logger.Debug("Making second request")
-	req_second, _ := http.NewRequest("POST", "https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", strings.NewReader(formVal.Encode()))
-	req_second.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	setHeaders(req_second)
+	reqSecond, _ := http.NewRequest("POST", "https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", strings.NewReader(formVal.Encode()))
+	reqSecond.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	setHeaders(reqSecond)
 
-	resp, err := client.Do(req_second)
+	resp, err := client.Do(reqSecond)
 	if err != nil {
 		logger.Errorf("Failed to login second request: %v", err)
 		tracerr.PrintSourceColor(err)

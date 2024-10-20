@@ -9,7 +9,7 @@ type WeekTime struct {
 }
 
 type Subject struct {
-	Id         string     `json:"id"`
+	ID         string     `json:"id"`
 	CourseCode string     `json:"course_code"`
 	CourseName string     `json:"course_name"`
 	Venue      string     `json:"venue"`
@@ -20,7 +20,7 @@ type Subject struct {
 }
 
 type ScheduleResponse struct {
-	Id           string    `json:"id"`
+	ID           string    `json:"id"`
 	SessionName  string    `json:"session_name"`
 	SessionQuery string    `json:"session_query"`
 	Schedule     []Subject `json:"schedule"`

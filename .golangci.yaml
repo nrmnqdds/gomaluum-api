@@ -7,4 +7,5 @@ linters:
     # for swagger purpose
     - staticcheck
   enable:
+    - revive
     - govet
