@@ -152,8 +152,10 @@ func main() {
 	g.GET("/result", controllers.GetResultHandler)
 	g.POST("/result", controllers.PostResultHandler)
 
+	// Catalog
 	g.GET("/catalog", controllers.CatalogHandler)
 
+	// Ads
 	g.GET("/ads", controllers.AdsHandler)
 
 	e.Logger.Fatal(e.Start(":1323"))
