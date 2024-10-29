@@ -2,89 +2,27 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"runtime/debug"
-	"strings"
 
-	otelmid "go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"golang.org/x/time/rate"
-
-	"google.golang.org/grpc/credentials"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/maruel/panicparse/v2/stack"
 	"github.com/nrmnqdds/gomaluum-api/controllers"
 	_ "github.com/nrmnqdds/gomaluum-api/docs/swagger"
-	"github.com/nrmnqdds/gomaluum-api/helpers"
 	echoSwagger "github.com/swaggo/echo-swagger"
-
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-
-	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
-
-var (
-	serviceName  = helpers.GetEnv("SERVICE_NAME")
-	collectorURL = helpers.GetEnv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	insecure     = helpers.GetEnv("INSECURE_MODE")
-)
-
-func initTracer() func(context.Context) error {
-	var secureOption otlptracegrpc.Option
-	logger, _ := helpers.NewLogger()
-
-	if strings.ToLower(insecure) == "false" || insecure == "0" || strings.ToLower(insecure) == "f" {
-		secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
-	} else {
-		secureOption = otlptracegrpc.WithInsecure()
-	}
-
-	exporter, err := otlptrace.New(
-		context.Background(),
-		otlptracegrpc.NewClient(
-			secureOption,
-			otlptracegrpc.WithEndpoint(collectorURL),
-		),
-	)
-	if err != nil {
-		logger.Errorf("Failed to create exporter: %v", err)
-	}
-	resources, err := resource.New(
-		context.Background(),
-		resource.WithAttributes(
-			attribute.String("service.name", serviceName),
-			attribute.String("library.language", "go"),
-		),
-	)
-	if err != nil {
-		logger.Fatalf("Could not set resources: %v", err)
-	}
-
-	otel.SetTracerProvider(
-		sdktrace.NewTracerProvider(
-			sdktrace.WithSampler(sdktrace.AlwaysSample()),
-			sdktrace.WithBatcher(exporter),
-			sdktrace.WithResource(resources),
-		),
-	)
-	return exporter.Shutdown
-}
 
 // @title Gomaluum API
 // @version 1.0
 // @description This is a simple API for Gomaluum project.
 func main() {
 	e := echo.New()
-	logger, _ := helpers.NewLogger()
 
 	parseStack := func(rawStack []byte) stack.Stack {
 		s, _, err := stack.ScanSnapshot(bytes.NewReader(rawStack), io.Discard, stack.DefaultOpts())
@@ -102,13 +40,6 @@ func main() {
 	parsedStack := parseStack(debug.Stack())
 	fmt.Printf("parsedStack: %#v", parsedStack)
 
-	cleanup := initTracer()
-	defer func() {
-		if err := cleanup(context.Background()); err != nil {
-			logger.Errorf("Failed to shutdown exporter: %v", err)
-		}
-	}()
-
 	// CORS
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
@@ -120,9 +51,6 @@ func main() {
 		Format: "[${time_rfc3339}] ${status} ${method} ${path} (${remote_ip}) ${latency_human}\n",
 		Output: e.Logger.Output(),
 	}))
-
-	// Set up OpenTelemetry middleware
-	e.Use(otelmid.Middleware(serviceName))
 
 	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(20))))
 
