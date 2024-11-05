@@ -16,7 +16,7 @@ type Subject struct {
 	Lecturer   string     `json:"lecturer"`
 	Timestamps []WeekTime `json:"timestamps"`
 	Chr        float64    `json:"chr"`
-	Section    uint8      `json:"section"`
+	Section    uint32     `json:"section"`
 }
 
 type ScheduleResponse struct {

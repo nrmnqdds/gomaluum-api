@@ -120,7 +120,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			courseCode := strings.TrimSpace(tds[0])
 			courseName := strings.TrimSpace(tds[1])
 
-			section, err := safecast.Atoi8(strings.TrimSpace(tds[2]))
+			section, err := safecast.Atoi32(strings.TrimSpace(tds[2]))
 			if err != nil {
 				return
 			}
@@ -179,7 +179,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 				ID:         cuid.New(),
 				CourseCode: courseCode,
 				CourseName: courseName,
-				Section:    uint8(section),
+				Section:    uint32(section),
 				Chr:        chr,
 				Timestamps: weekTime,
 				Venue:      venue,

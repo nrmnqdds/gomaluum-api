@@ -10,13 +10,12 @@ import (
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/helpers"
 	"github.com/redis/go-redis/v9"
-	"github.com/ztrue/tracerr"
 )
-
-var ctx = context.Background()
 
 func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) {
 	jar, _ := cookiejar.New(nil)
+
+	ctx := context.Background()
 
 	opt, _ := redis.ParseURL(helpers.GetEnv("REDIS_URL"))
 	redisClient := redis.NewClient(opt)
@@ -25,10 +24,9 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 	client := &http.Client{
 		Jar: jar,
 	}
-	urlObj, err := url.Parse("https://imaluum.iium.edu.my/home")
+	urlObj, err := url.Parse("https://imaluum.iium.edu.my/")
 	if err != nil {
 		logger.Errorf("Failed to parse url: %v", err)
-		tracerr.PrintSourceColor(err)
 		return nil, dtos.ErrFailedToLogin
 	}
 
@@ -48,7 +46,6 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 	respFirst, err := client.Do(reqFirst)
 	if err != nil {
 		logger.Errorf("Failed to login first request: %v", err)
-		tracerr.PrintSourceColor(err)
 		return nil, dtos.ErrFailedToLogin
 	}
 	respFirst.Body.Close()
@@ -64,13 +61,13 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 	resp, err := client.Do(reqSecond)
 	if err != nil {
 		logger.Errorf("Failed to login second request: %v", err)
-		tracerr.PrintSourceColor(err)
 		return nil, dtos.ErrFailedToLogin
 	}
 	resp.Body.Close()
 
 	cookies := client.Jar.Cookies(urlObj)
 
+	logger.Debugf("Cookies: %v", cookies)
 	for _, cookie := range cookies {
 		if cookie.Name == "MOD_AUTH_CAS" {
 
