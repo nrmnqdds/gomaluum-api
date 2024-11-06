@@ -1,21 +1,16 @@
 package main
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"runtime/debug"
 
 	"golang.org/x/time/rate"
 
+	"github.com/MarceloPetrucio/go-scalar-api-reference"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/maruel/panicparse/v2/stack"
 	"github.com/nrmnqdds/gomaluum-api/controllers"
-	_ "github.com/nrmnqdds/gomaluum-api/docs/swagger"
-	echoSwagger "github.com/swaggo/echo-swagger"
+	"github.com/nrmnqdds/gomaluum-api/helpers"
 )
 
 // @title Gomaluum API
@@ -23,22 +18,6 @@ import (
 // @description This is a simple API for Gomaluum project.
 func main() {
 	e := echo.New()
-
-	parseStack := func(rawStack []byte) stack.Stack {
-		s, _, err := stack.ScanSnapshot(bytes.NewReader(rawStack), io.Discard, stack.DefaultOpts())
-		if err != nil && err != io.EOF {
-			panic(err)
-		}
-
-		if len(s.Goroutines) > 1 {
-			panic(errors.New("provided stacktrace had more than one goroutine"))
-		}
-
-		return s.Goroutines[0].Signature.Stack
-	}
-
-	parsedStack := parseStack(debug.Stack())
-	fmt.Printf("parsedStack: %#v", parsedStack)
 
 	// CORS
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -58,10 +37,26 @@ func main() {
 	e.Use(middleware.Recover())
 
 	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "You look lost. Try /swagger/index.html")
+		return c.Redirect(http.StatusMovedPermanently, "/scalar")
 	})
 
-	e.GET("/swagger/*", echoSwagger.WrapHandler)
+	e.GET("/scalar", func(c echo.Context) error {
+		htmlContent, err := scalar.ApiReferenceHTML(&scalar.Options{
+			// SpecURL: "https://generator3.swagger.io/openapi.json",// allow external URL or local path file
+			SpecURL: helpers.OpenAPISpecPath,
+			CustomOptions: scalar.CustomOptions{
+				PageTitle: "Simple API",
+			},
+			DarkMode: true,
+		})
+		if err != nil {
+			fmt.Printf("%v", err)
+		}
+
+		htmlBlob := []byte(htmlContent)
+
+		return c.HTMLBlob(http.StatusOK, htmlBlob)
+	})
 
 	e.GET("/ping", func(c echo.Context) error {
 		return c.String(http.StatusOK, "pong")
