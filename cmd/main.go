@@ -58,7 +58,7 @@ func main() {
 	e.Use(middleware.Recover())
 
 	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "You look lost. Try /swagger/index.html")
+		return c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
 	})
 
 	e.GET("/swagger/*", echoSwagger.WrapHandler)

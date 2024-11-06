@@ -41,6 +41,9 @@ const docTemplate = `{
         "/api/catalog": {
             "get": {
                 "description": "Get catalog",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],

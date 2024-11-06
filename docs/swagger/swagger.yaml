@@ -32,6 +32,8 @@ paths:
       - ads
   /api/catalog:
     get:
+      consumes:
+      - application/json
       description: Get catalog
       produces:
       - application/json
