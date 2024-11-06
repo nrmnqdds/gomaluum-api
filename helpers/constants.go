@@ -12,4 +12,6 @@ const ImaluumSchedulePage = "https://imaluum.iium.edu.my/MyAcademic/schedule"
 
 const ImaluumResultPage = "https://imaluum.iium.edu.my/MyAcademic/result"
 
+const TimeSeparator = "-"
+
 var OpenAPISpecPath = GetEnv("OPENAPI_SPEC_PATH")

@@ -148,11 +148,19 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			for _, day := range _days {
 				dayNum := helpers.GetScheduleDays(day)
 				timeTemp := tds[6]
-				time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
 
-				if len(time) != 2 {
+				// `timeFullForm` refers to schedule time from iMaluum
+				// e.g.: 800-920 or 1000-1120
+				timeFullForm := strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1)
+
+				// in some cases, iMaluum will return "-" as time
+				// if `timeFullForm` equals `TimeSeparator`, then we skip this row
+				if timeFullForm == helpers.TimeSeparator {
 					continue
 				}
+
+				// safely split time entry
+				time := strings.Split(timeFullForm, helpers.TimeSeparator)
 
 				start := strings.TrimSpace(time[0])
 				end := strings.TrimSpace(time[1])
