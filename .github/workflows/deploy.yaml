@@ -19,7 +19,6 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          skip-go-installation: true
           version: latest
           args: --config=./.golangci.yaml --timeout=30m --verbose
       - name: Set up Docker Buildx
