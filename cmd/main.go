@@ -37,15 +37,15 @@ func main() {
 	e.Use(middleware.Recover())
 
 	e.GET("/", func(c echo.Context) error {
-		return c.Redirect(http.StatusMovedPermanently, "/scalar")
+		return c.Redirect(http.StatusMovedPermanently, "/reference")
 	})
 
-	e.GET("/scalar", func(c echo.Context) error {
+	e.GET("/reference", func(c echo.Context) error {
 		htmlContent, err := scalar.ApiReferenceHTML(&scalar.Options{
 			// SpecURL: "https://generator3.swagger.io/openapi.json",// allow external URL or local path file
 			SpecURL: helpers.OpenAPISpecPath,
 			CustomOptions: scalar.CustomOptions{
-				PageTitle: "Simple API",
+				PageTitle: "GoMaluum API Reference",
 			},
 			DarkMode: true,
 		})
