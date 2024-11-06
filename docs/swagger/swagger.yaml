@@ -16,7 +16,7 @@ info:
   version: "1.0"
 paths:
   /api/ads:
-    post:
+    get:
       consumes:
       - application/json
       description: SOUQ Ads

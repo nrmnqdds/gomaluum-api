@@ -16,7 +16,7 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/api/ads": {
-            "post": {
+            "get": {
                 "description": "SOUQ Ads",
                 "consumes": [
                     "application/json"

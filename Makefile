@@ -5,7 +5,7 @@ benchmark:
 	cd test && go test -bench=.
 
 lint:
-	golangci-lint run --fix
+	golangci-lint run --fix --verbose
 
 swagger:
 	swag init --parseDependency --parseInternal -g ./cmd/main.go -o ./docs/swagger

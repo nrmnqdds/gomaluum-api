@@ -16,7 +16,7 @@ import (
 // @Accept json
 // @Produce json
 // @Success 200 {object} map[string]interface{}
-// @Router /api/ads [post]
+// @Router /api/ads [get]
 func AdsHandler(c echo.Context) error {
 	logger, _ := helpers.NewLogger()
 
