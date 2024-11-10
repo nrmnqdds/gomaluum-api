@@ -3,7 +3,6 @@ package scraper
 import (
 	"slices"
 	"sort"
-	"sync"
 
 	"github.com/gocolly/colly/v2"
 	"github.com/lucsky/cuid"
@@ -57,7 +56,9 @@ func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.
 		// If it's not, add it to the list
 		sessionQueries = append(sessionQueries, latestSession)
 
-		// sessionName := e.ChildText("a")
+		sessionName := e.ChildText("a")
+
+		go getResultFromSession(c, &latestSession, &sessionName, &result)
 
 		// p.Go(func() {
 		// 	getResultFromSession(c, &latestSession, &sessionName, &result, &mu)
@@ -81,15 +82,12 @@ func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.
 	return &result, nil
 }
 
-func getResultFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, result *[]dtos.ResultResponse, mu *sync.Mutex) {
+func getResultFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, result *[]dtos.ResultResponse) {
 	logger, _ := helpers.NewLogger()
-	defer mu.Unlock()
 
 	url := helpers.ImaluumResultPage + *sessionQuery
 	logger.Infof("session name: %v", *sessionName)
 	logger.Infof("url %v", url)
-
-	mu.Lock()
 
 	c.OnHTML(".box-body table.table.table-hover tbody tr", func(e *colly.HTMLElement) {
 		tds := e.ChildTexts("td")

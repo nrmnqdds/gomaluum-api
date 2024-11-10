@@ -85,6 +85,8 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, scheduleChan chan<- dtos.ScheduleResponse, wg *sync.WaitGroup) {
 	defer wg.Done()
 
+	logger, _ := helpers.NewLogger()
+
 	url := helpers.ImaluumSchedulePage + *sessionQuery
 
 	subjects := []dtos.Subject{}
@@ -247,6 +249,9 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 	if err := c.Visit(url); err != nil {
 		return
 	}
+
+	logger.Debugf("Session Name: %v", *sessionName)
+	logger.Debugf("Subjects: %v", subjects)
 
 	scheduleChan <- dtos.ScheduleResponse{
 		ID:           cuid.Slug(),
