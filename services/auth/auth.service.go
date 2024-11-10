@@ -39,7 +39,7 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 	}
 
 	// First request
-	logger.Info("Making first request")
+	logger.Debug("Making first request")
 	reqFirst, _ := http.NewRequest("GET", "https://cas.iium.edu.my:8448/cas/login?service=https%3a%2f%2fimaluum.iium.edu.my%2fhome", nil)
 	setHeaders(reqFirst)
 

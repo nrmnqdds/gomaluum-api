@@ -1,7 +1,6 @@
 package scraper
 
 import (
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,7 +11,6 @@ import (
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/helpers"
 	"github.com/rung/go-safecast"
-	"github.com/sourcegraph/conc/pool"
 )
 
 func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *dtos.CustomError) {
@@ -22,15 +20,8 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 	e := d.Echo
 
 	var (
-		c        = colly.NewCollector()
-		schedule []dtos.ScheduleResponse
-		mu       sync.Mutex
-		isLatest = e.QueryParam("latest")
-		// semester       = e.QueryParam("semester")
-		// year           = e.QueryParam("year")
-		sessionQueries = []string{}
-		p              = pool.New().WithMaxGoroutines(20)
-		_cookie        string
+		c       = colly.NewCollector()
+		_cookie string
 	)
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
@@ -51,29 +42,18 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 		r.Headers.Set("User-Agent", helpers.RandomString())
 	})
 
-	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu li[style*='font-size:16px']", func(e *colly.HTMLElement) {
-		if isLatest == "true" {
-			if len(sessionQueries) > 0 {
-				return
-			}
+	var wg sync.WaitGroup
+	scheduleChan := make(chan dtos.ScheduleResponse)
+	var schedule []dtos.ScheduleResponse
+
+	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu", func(e *colly.HTMLElement) {
+		sessionQuery := e.ChildAttrs("li[style*='font-size:16px'] a", "href")
+		sessionName := e.ChildTexts("li[style*='font-size:16px'] a")
+
+		for i := 0; i < len(sessionQuery); i++ {
+			wg.Add(1)
+			go getScheduleFromSession(c, &sessionQuery[i], &sessionName[i], scheduleChan, &wg)
 		}
-
-		latestSession := e.ChildAttr("a", "href")
-
-		// Check if the session is already in the list
-		if slices.Contains(sessionQueries, latestSession) {
-			// If it is, return
-			return
-		}
-
-		// If it's not, add it to the list
-		sessionQueries = append(sessionQueries, latestSession)
-
-		sessionName := e.ChildText("a")
-
-		p.Go(func() {
-			getScheduleFromSession(c, &latestSession, &sessionName, &schedule, &mu)
-		})
 	})
 
 	if err := c.Visit(helpers.ImaluumSchedulePage); err != nil {
@@ -81,8 +61,14 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
-	p.Wait()
-	c.Wait()
+	go func() {
+		wg.Wait()
+		close(scheduleChan)
+	}()
+
+	for s := range scheduleChan {
+		schedule = append(schedule, s)
+	}
 
 	if len(schedule) == 0 {
 		logger.Error("Schedule is empty")
@@ -96,14 +82,12 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 	return &schedule, nil
 }
 
-func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, schedule *[]dtos.ScheduleResponse, mu *sync.Mutex) {
-	defer mu.Unlock()
+func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, scheduleChan chan<- dtos.ScheduleResponse, wg *sync.WaitGroup) {
+	defer wg.Done()
 
 	url := helpers.ImaluumSchedulePage + *sessionQuery
 
 	subjects := []dtos.Subject{}
-
-	mu.Lock()
 
 	c.OnHTML(".box-body table.table.table-hover tr", func(e *colly.HTMLElement) {
 		tds := e.ChildTexts("td")
@@ -264,10 +248,10 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 		return
 	}
 
-	*schedule = append(*schedule, dtos.ScheduleResponse{
+	scheduleChan <- dtos.ScheduleResponse{
 		ID:           cuid.Slug(),
 		SessionName:  *sessionName,
 		SessionQuery: *sessionQuery,
 		Schedule:     subjects,
-	})
+	}
 }
