@@ -13,7 +13,6 @@ require (
 	github.com/lucsky/cuid v1.2.1
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/rung/go-safecast v1.0.1
-	github.com/sourcegraph/conc v0.3.0
 	github.com/swaggo/swag v1.16.3
 	go.uber.org/zap v1.27.0
 	golang.org/x/time v0.6.0

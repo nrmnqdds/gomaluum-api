@@ -9,21 +9,16 @@ import (
 	"github.com/lucsky/cuid"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/helpers"
-	"github.com/sourcegraph/conc/pool"
 )
 
 func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.CustomError) {
 	e := d.Echo
 
 	var (
-		c        = colly.NewCollector()
-		result   []dtos.ResultResponse
-		mu       sync.Mutex
-		isLatest = e.QueryParam("latest")
-		// semester       = e.QueryParam("semester")
-		// year           = e.QueryParam("year")
+		c              = colly.NewCollector()
+		result         []dtos.ResultResponse
+		isLatest       = e.QueryParam("latest")
 		sessionQueries = []string{}
-		p              = pool.New().WithMaxGoroutines(20)
 		_cookie        string
 	)
 
@@ -62,18 +57,17 @@ func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.
 		// If it's not, add it to the list
 		sessionQueries = append(sessionQueries, latestSession)
 
-		sessionName := e.ChildText("a")
+		// sessionName := e.ChildText("a")
 
-		p.Go(func() {
-			getResultFromSession(c, &latestSession, &sessionName, &result, &mu)
-		})
+		// p.Go(func() {
+		// 	getResultFromSession(c, &latestSession, &sessionName, &result, &mu)
+		// })
 	})
 
 	if err := c.Visit(helpers.ImaluumResultPage); err != nil {
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
-	p.Wait()
 	c.Wait()
 
 	if len(result) == 0 {
