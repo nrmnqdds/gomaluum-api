@@ -32,8 +32,12 @@ func ProfileScraper(e echo.Context) (*dtos.Profile, *dtos.CustomError) {
 	c.OnHTML("body", func(e *colly.HTMLElement) {
 		profile.Name = strings.TrimSpace(e.ChildText(".row .col-md-12 .box.box-default .panel-body.row .col-md-4[style='text-align:center; padding:10px; floaf:left;'] h4[style='margin-top:1%;']"))
 
+		profile.Level = strings.TrimSpace(e.ChildText(".row .col-md-12 .box.box-default .panel-body.row .col-md-4[style='text-align:center; padding:10px; floaf:left;'] h4:nth-of-type(2)"))
+
 		_matricNo := strings.TrimSpace(e.ChildText(".row .col-md-12 .box.box-default .panel-body.row .col-md-4[style='margin-top:3%;'] h4"))
 		profile.MatricNo = strings.TrimSpace(strings.Split(_matricNo, "|")[0])
+
+		profile.Kuliyyah = strings.TrimSpace(e.ChildText(".row .col-md-12 .box.box-default .panel-body.row .col-md-4[style='margin-top:3%;'] p"))
 	})
 
 	if err := c.Visit(helpers.ImaluumProfilePage); err != nil {
