@@ -58,7 +58,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
-	for i := 0; i < len(sessionQueries); i++ {
+	for i := range sessionQueries {
 		wg.Add(1)
 		go getScheduleFromSession(c, &sessionQueries[i], &sessionNames[i], scheduleChan, &wg)
 	}
