@@ -28,18 +28,34 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 		sessionNames   []string
 	)
 
-	cookie, err := e.Cookie("MOD_AUTH_CAS")
-
-	if err != nil {
-		if d.Token == "" {
+	if d.Token == "" {
+		cookie, err := e.Cookie("MOD_AUTH_CAS")
+		if err != nil {
 			logger.Error("No cookie found!")
 			return nil, dtos.ErrUnauthorized
 		}
 
-		_cookie = d.Token
-	} else {
+		logger.Debug("Found cookie")
 		_cookie = cookie.Value
+	} else {
+		logger.Debug("Using token from login directly as cookie")
+		_cookie = d.Token
 	}
+
+	// cookie, err := e.Cookie("MOD_AUTH_CAS")
+	//
+	// if err != nil {
+	// 	if d.Token == "" {
+	// 		logger.Error("No cookie found!")
+	// 		return nil, dtos.ErrUnauthorized
+	// 	}
+	//
+	// 	logger.Debug("Using token from login directly as cookie")
+	// 	_cookie = d.Token
+	// } else {
+	// 	logger.Debug("Found cookie")
+	// 	_cookie = cookie.Value
+	// }
 
 	c.OnRequest(func(r *colly.Request) {
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+_cookie)
@@ -91,6 +107,7 @@ func getScheduleFromSession(c *colly.Collector, cookie *string, sessionQuery *st
 	defer wg.Done()
 
 	logger, _ := helpers.NewLogger()
+	logger.Debugf("Running scraper for session: %v", *sessionName)
 
 	url := helpers.ImaluumSchedulePage + *sessionQuery
 
@@ -267,9 +284,6 @@ func getScheduleFromSession(c *colly.Collector, cookie *string, sessionQuery *st
 	if err := c.Visit(url); err != nil {
 		return
 	}
-
-	logger.Debugf("Session Name: %v", *sessionName)
-	logger.Debugf("Subjects: %v", subjects)
 
 	scheduleChan <- dtos.ScheduleResponse{
 		ID:           cuid.Slug(),
