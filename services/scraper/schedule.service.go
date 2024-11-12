@@ -20,8 +20,12 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 	e := d.Echo
 
 	var (
-		c       = colly.NewCollector()
-		_cookie string
+		c              = colly.NewCollector()
+		_cookie        string
+		wg             sync.WaitGroup
+		schedule       []dtos.ScheduleResponse
+		sessionQueries []string
+		sessionNames   []string
 	)
 
 	cookie, err := e.Cookie("MOD_AUTH_CAS")
@@ -42,23 +46,21 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 		r.Headers.Set("User-Agent", helpers.RandomString())
 	})
 
-	var wg sync.WaitGroup
 	scheduleChan := make(chan dtos.ScheduleResponse)
-	var schedule []dtos.ScheduleResponse
 
 	c.OnHTML(".box.box-primary .box-header.with-border .dropdown ul.dropdown-menu", func(e *colly.HTMLElement) {
-		sessionQuery := e.ChildAttrs("li[style*='font-size:16px'] a", "href")
-		sessionName := e.ChildTexts("li[style*='font-size:16px'] a")
-
-		for i := 0; i < len(sessionQuery); i++ {
-			wg.Add(1)
-			go getScheduleFromSession(c, &sessionQuery[i], &sessionName[i], scheduleChan, &wg)
-		}
+		sessionQueries = e.ChildAttrs("li[style*='font-size:16px'] a", "href")
+		sessionNames = e.ChildTexts("li[style*='font-size:16px'] a")
 	})
 
 	if err := c.Visit(helpers.ImaluumSchedulePage); err != nil {
 		logger.Error("Failed to go to URL")
 		return nil, dtos.ErrFailedToGoToURL
+	}
+
+	for i := 0; i < len(sessionQueries); i++ {
+		wg.Add(1)
+		go getScheduleFromSession(c, &sessionQueries[i], &sessionNames[i], scheduleChan, &wg)
 	}
 
 	go func() {
