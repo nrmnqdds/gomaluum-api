@@ -42,21 +42,6 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 		_cookie = d.Token
 	}
 
-	// cookie, err := e.Cookie("MOD_AUTH_CAS")
-	//
-	// if err != nil {
-	// 	if d.Token == "" {
-	// 		logger.Error("No cookie found!")
-	// 		return nil, dtos.ErrUnauthorized
-	// 	}
-	//
-	// 	logger.Debug("Using token from login directly as cookie")
-	// 	_cookie = d.Token
-	// } else {
-	// 	logger.Debug("Found cookie")
-	// 	_cookie = cookie.Value
-	// }
-
 	c.OnRequest(func(r *colly.Request) {
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+_cookie)
 		r.Headers.Set("User-Agent", helpers.RandomString())
