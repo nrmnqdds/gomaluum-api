@@ -17,9 +17,9 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 	logger, _ := helpers.NewLogger()
 
 	logger.Info("Schedule service called")
-	e := d.Echo
 
 	var (
+		e              = d.Echo
 		c              = colly.NewCollector()
 		_cookie        string
 		wg             sync.WaitGroup
@@ -60,7 +60,10 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 
 	for i := range sessionQueries {
 		wg.Add(1)
-		go getScheduleFromSession(c, &sessionQueries[i], &sessionNames[i], scheduleChan, &wg)
+
+		clone := c.Clone()
+
+		go getScheduleFromSession(clone, &_cookie, &sessionQueries[i], &sessionNames[i], scheduleChan, &wg)
 	}
 
 	go func() {
@@ -84,14 +87,20 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 	return &schedule, nil
 }
 
-func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionName *string, scheduleChan chan<- dtos.ScheduleResponse, wg *sync.WaitGroup) {
+func getScheduleFromSession(c *colly.Collector, cookie *string, sessionQuery *string, sessionName *string, scheduleChan chan<- dtos.ScheduleResponse, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	logger, _ := helpers.NewLogger()
 
 	url := helpers.ImaluumSchedulePage + *sessionQuery
 
+	var mu sync.Mutex
 	subjects := []dtos.Subject{}
+
+	c.OnRequest(func(r *colly.Request) {
+		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+*cookie)
+		r.Headers.Set("User-Agent", helpers.RandomString())
+	})
 
 	c.OnHTML(".box-body table.table.table-hover tr", func(e *colly.HTMLElement) {
 		tds := e.ChildTexts("td")
@@ -171,6 +180,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			venue := strings.TrimSpace(tds[7])
 			lecturer := strings.TrimSpace(tds[8])
 
+			mu.Lock()
 			subjects = append(subjects, dtos.Subject{
 				ID:         cuid.New(),
 				CourseCode: courseCode,
@@ -181,15 +191,19 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 				Venue:      venue,
 				Lecturer:   lecturer,
 			})
+			mu.Unlock()
 
 		}
 
 		// Handles for merged cell usually at time or day or venue
 		if len(tds) == 4 {
-			courseCode := subjects[len(subjects)-1].CourseCode
-			courseName := subjects[len(subjects)-1].CourseName
-			section := subjects[len(subjects)-1].Section
-			chr := subjects[len(subjects)-1].Chr
+			mu.Lock()
+			lastSubject := subjects[len(subjects)-1]
+			mu.Unlock()
+			courseCode := lastSubject.CourseCode
+			courseName := lastSubject.CourseName
+			section := lastSubject.Section
+			chr := lastSubject.Chr
 
 			// Split the days
 			_days := strings.Split(strings.Replace(strings.TrimSpace(tds[0]), " ", "", -1), "-")
@@ -235,6 +249,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 			venue := strings.TrimSpace(tds[2])
 			lecturer := strings.TrimSpace(tds[3])
 
+			mu.Lock()
 			subjects = append(subjects, dtos.Subject{
 				ID:         cuid.Slug(),
 				CourseCode: courseCode,
@@ -245,6 +260,7 @@ func getScheduleFromSession(c *colly.Collector, sessionQuery *string, sessionNam
 				Venue:      venue,
 				Lecturer:   lecturer,
 			})
+			mu.Unlock()
 		}
 	})
 
