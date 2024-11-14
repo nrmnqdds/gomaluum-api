@@ -7,6 +7,8 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/MarceloPetrucio/go-scalar-api-reference"
+	"github.com/hibiken/asynq"
+	"github.com/hibiken/asynqmon"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/nrmnqdds/gomaluum-api/controllers"
@@ -61,6 +63,16 @@ func StartEchoServer() {
 	e.GET("/ping", func(c echo.Context) error {
 		return c.String(http.StatusOK, "pong")
 	})
+
+	mon := asynqmon.New(asynqmon.Options{
+		RootPath: "/monitoring/tasks",
+		RedisConnOpt: asynq.RedisClientOpt{
+			Addr:     ":6379",
+			Password: "",
+			DB:       0,
+		},
+	})
+	e.Any("/monitoring/tasks/*", echo.WrapHandler(mon))
 
 	g := e.Group("/api")
 
