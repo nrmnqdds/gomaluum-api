@@ -1,85 +1,56 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"flag"
+	"os"
 
-	"golang.org/x/time/rate"
-
-	"github.com/MarceloPetrucio/go-scalar-api-reference"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	"github.com/nrmnqdds/gomaluum-api/controllers"
-	"github.com/nrmnqdds/gomaluum-api/helpers"
+	"github.com/nrmnqdds/gomaluum-api/cmd/application"
 )
 
-// @title Gomaluum API
-// @version 1.0
-// @description This is a simple API for Gomaluum project.
+type CliFlag struct {
+	worker bool
+	api    bool
+}
+
 func main() {
-	e := echo.New()
+	flags := getFlags()
 
-	// CORS
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{http.MethodGet, http.MethodPost},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
-	}))
+	// If no flags are provided, print usage and exit
+	if !flags.api && !flags.worker {
+		flag.Usage()
+		println("\nError: At least one flag (-a/--api or -w/--worker) must be provided")
+		os.Exit(1)
+	}
 
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: "[${time_rfc3339}] ${status} ${method} ${path} (${remote_ip}) ${latency_human}\n",
-		Output: e.Logger.Output(),
-	}))
+	switch {
+	case flags.api:
+		application.StartEchoServer()
+	case flags.worker:
+		application.StartAsynqServer()
+	}
+}
 
-	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(20))))
+func getFlags() CliFlag {
+	var apiFlag bool
+	var worker bool
 
-	// This middleware is used to recover from panics anywhere in the chain, log the panic (and a stack trace), and set a status code of 500.
-	e.Use(middleware.Recover())
+	// Override default usage message
+	flag.Usage = func() {
+		println("Usage of Gomaluum:")
+		println("  -a, --api     Start the API server")
+		println("  -w, --worker  Start the worker server")
+		println("  -h, --help    Show this help message")
+	}
 
-	e.GET("/", func(c echo.Context) error {
-		return c.Redirect(http.StatusMovedPermanently, "/reference")
-	})
+	flag.BoolVar(&apiFlag, "api", false, "start API server")
+	flag.BoolVar(&apiFlag, "a", false, "start API server (shorthand)")
+	flag.BoolVar(&worker, "worker", false, "start worker server")
+	flag.BoolVar(&worker, "w", false, "start worker server (shorthand)")
 
-	e.GET("/reference", func(c echo.Context) error {
-		htmlContent, err := scalar.ApiReferenceHTML(&scalar.Options{
-			// SpecURL: "https://generator3.swagger.io/openapi.json",// allow external URL or local path file
-			SpecURL: helpers.OpenAPISpecPath,
-			CustomOptions: scalar.CustomOptions{
-				PageTitle: "GoMaluum API Reference",
-			},
-			DarkMode: true,
-		})
-		if err != nil {
-			fmt.Printf("%v", err)
-		}
+	flag.Parse()
 
-		htmlBlob := []byte(htmlContent)
-
-		return c.HTMLBlob(http.StatusOK, htmlBlob)
-	})
-
-	e.GET("/ping", func(c echo.Context) error {
-		return c.String(http.StatusOK, "pong")
-	})
-
-	g := e.Group("/api")
-
-	g.POST("/login", controllers.LoginHandler)
-
-	g.GET("/profile", controllers.GetProfileHandler)
-
-	// Schedule
-	g.GET("/schedule", controllers.GetScheduleHandler)
-	g.POST("/schedule", controllers.PostScheduleHandler)
-
-	g.GET("/result", controllers.GetResultHandler)
-	g.POST("/result", controllers.PostResultHandler)
-
-	// Catalog
-	g.GET("/catalog", controllers.CatalogHandler)
-
-	// Ads
-	g.GET("/ads", controllers.AdsHandler)
-
-	e.Logger.Fatal(e.Start(":1323"))
+	return CliFlag{
+		api:    apiFlag,
+		worker: worker,
+	}
 }

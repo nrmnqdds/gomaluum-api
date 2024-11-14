@@ -10,7 +10,7 @@ import (
 
 func GetEnv(key string) string {
 	err := godotenv.Load()
-	if err != nil && os.Getenv("MODE") == "development" {
+	if err != nil && os.Getenv("APP_ENV") == "development" {
 		log.Fatal("Error reading .env file!")
 	}
 

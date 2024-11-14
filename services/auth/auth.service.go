@@ -1,24 +1,27 @@
 package auth
 
 import (
-	"context"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
+	"time"
 
+	"github.com/hibiken/asynq"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/helpers"
-	"github.com/redis/go-redis/v9"
+	"github.com/nrmnqdds/gomaluum-api/tasks"
 )
 
 func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) {
 	jar, _ := cookiejar.New(nil)
 
-	ctx := context.Background()
-
-	opt, _ := redis.ParseURL(helpers.GetEnv("REDIS_URL"))
-	redisClient := redis.NewClient(opt)
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
+		Addr:     helpers.GetEnv("REDIS_URL"),
+		Password: "",
+		DB:       0,
+	})
+	defer asynqClient.Close()
 
 	logger, _ := helpers.NewLogger()
 	client := &http.Client{
@@ -71,11 +74,16 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 	for _, cookie := range cookies {
 		if cookie.Name == "MOD_AUTH_CAS" {
 
-			err := redisClient.Set(ctx, user.Username, user.Password, 0).Err()
+			task, err := tasks.NewSaveToRedisTask(user.Username, user.Password)
 			if err != nil {
 				logger.Warnf("Failed to set user password to redis: %v", err)
 			}
-			logger.Infof("Successfully logged in user: %s", user.Username)
+
+			info, err := asynqClient.Enqueue(task, asynq.ProcessIn(1*time.Minute))
+			if err != nil {
+				logger.Warnf("could not schedule task: %v", err)
+			}
+			logger.Infof("enqueued task: id=%s queue=%s", info.ID, info.Queue)
 
 			return &dtos.LoginResponseDTO{
 				Username: user.Username,
@@ -87,6 +95,7 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 	return nil, dtos.ErrFailedToLogin
 }
 
+// Function to set headers for a request.
 func setHeaders(req *http.Request) {
 	req.Header.Set("Connection", "Keep-Alive")
 	req.Header.Set("Accept-Language", "en-US")

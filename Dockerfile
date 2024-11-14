@@ -18,7 +18,7 @@ COPY --from=build /app/gomaluum /
 COPY --from=build /app/dtos/iium_2024_2025_1.json /  
 COPY --from=build /app/docs/swagger/swagger.json /  
 
-ENV ENVIRONMENT=production
+ENV APP_ENV=production
 ENV OPENAPI_SPEC_PATH=/swagger.json
 
 USER nonroot:nonroot
@@ -26,3 +26,4 @@ USER nonroot:nonroot
 EXPOSE 1323
 
 ENTRYPOINT ["/gomaluum"]
+CMD ["-a"]

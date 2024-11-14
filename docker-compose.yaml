@@ -1,9 +1,32 @@
 services:
   gomaluum:
-    image: 'ghcr.io/nrmnqdds/gomaluum:latest'
+    container_name: gomaluum
+    image: 'gomaluum'
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_URL=redis:6379
+      - PORT=1323
     ports:
-      - '1323-1325:1323'
+      - '1323:1323'
+    command: -a
     restart: 'always'
-    deploy:
-      mode: replicated
-      replicas: 3
+  gomaluum-worker:
+    container_name: gomaluum-worker
+    image: 'gomaluum'
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_URL=redis:6379
+    ports:
+      - '1324:1323'
+    command: -w
+    restart: 'always'
+  redis:
+    container_name: redis
+    image: 'redis'
+    ports:
+      - '6379:6379'
+    restart: 'always'
