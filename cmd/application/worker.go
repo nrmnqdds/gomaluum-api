@@ -12,7 +12,11 @@ import (
 // This function is called when the -w or --worker flag is provided.
 func StartAsynqServer() {
 	srv := asynq.NewServer(
-		asynq.RedisClientOpt{Addr: helpers.GetEnv("REDIS_URL")},
+		asynq.RedisClientOpt{
+			Addr:     helpers.GetEnv("REDIS_URL"),
+			Username: helpers.GetEnv("REDIS_USERNAME"),
+			Password: helpers.GetEnv("REDIS_PASSWORD"),
+		},
 		asynq.Config{
 			// Specify how many concurrent workers to use
 			Concurrency: 10,
