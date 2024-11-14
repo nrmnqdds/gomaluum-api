@@ -21,7 +21,9 @@ func SaveToRedis(ctx context.Context, t *asynq.Task) error {
 
 	// opt, _ := redis.ParseURL(helpers.GetEnv("REDIS_URL"))
 	opt := &redis.Options{
-		Addr: helpers.GetEnv("REDIS_URL"),
+		Addr:     helpers.GetEnv("REDIS_URL"),
+		Username: helpers.GetEnv("REDIS_USERNAME"),
+		Password: helpers.GetEnv("REDIS_PASSWORD"),
 	}
 	client := redis.NewClient(opt)
 

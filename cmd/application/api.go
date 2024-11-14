@@ -67,9 +67,9 @@ func StartEchoServer() {
 	mon := asynqmon.New(asynqmon.Options{
 		RootPath: "/monitoring/tasks",
 		RedisConnOpt: asynq.RedisClientOpt{
-			Addr:     ":6379",
-			Password: "",
-			DB:       0,
+			Addr:     helpers.GetEnv("REDIS_URL"),
+			Username: helpers.GetEnv("REDIS_USERNAME"),
+			Password: helpers.GetEnv("REDIS_PASSWORD"),
 		},
 	})
 	e.Any("/monitoring/tasks/*", echo.WrapHandler(mon))

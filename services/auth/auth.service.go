@@ -18,8 +18,8 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
 		Addr:     helpers.GetEnv("REDIS_URL"),
-		Password: "",
-		DB:       0,
+		Username: helpers.GetEnv("REDIS_USERNAME"),
+		Password: helpers.GetEnv("REDIS_PASSWORD"),
 	})
 	defer asynqClient.Close()
 
