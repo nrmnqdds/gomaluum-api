@@ -1,6 +1,7 @@
 package application
 
 import (
+	"embed"
 	"log"
 	"net/http"
 
@@ -14,6 +15,8 @@ import (
 	"github.com/nrmnqdds/gomaluum-api/controllers"
 	"github.com/nrmnqdds/gomaluum-api/helpers"
 )
+
+var SwaggerDocsPath *embed.FS
 
 // @title Gomaluum API
 // @version 1.0
@@ -43,16 +46,21 @@ func StartEchoServer() {
 	})
 
 	e.GET("/reference", func(c echo.Context) error {
+		swaggerPath, err := SwaggerDocsPath.ReadFile("docs/swagger/swagger.json")
+		if err != nil {
+			log.Fatalf("could not read swagger.json: %v", err)
+		}
+		log.Println("swaggerPath", string(swaggerPath))
+
 		htmlContent, err := scalar.ApiReferenceHTML(&scalar.Options{
-			// SpecURL: "https://generator3.swagger.io/openapi.json",// allow external URL or local path file
-			SpecURL: helpers.GetOpenAPISpecPath(),
+			SpecContent: string(swaggerPath),
 			CustomOptions: scalar.CustomOptions{
 				PageTitle: "GoMaluum API Reference",
 			},
 			DarkMode: true,
 		})
 		if err != nil {
-			log.Fatalf("%v", err)
+			log.Fatalf("Error initializing scalar: %v", err)
 		}
 
 		htmlBlob := []byte(htmlContent)

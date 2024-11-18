@@ -1,4 +1,4 @@
-package main
+package application
 
 import (
 	"flag"
@@ -12,7 +12,7 @@ type CliFlag struct {
 	api    bool
 }
 
-func main() {
+func StartApplication() {
 	flags := getFlags()
 
 	// If no flags are provided, print usage and exit

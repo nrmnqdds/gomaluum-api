@@ -10,16 +10,15 @@ RUN go mod verify
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags="-s -w" -o /app/gomaluum cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags="-s -w" -o /app/gomaluum main.go
 
 # use debug so can docker exec
 FROM gcr.io/distroless/static-debian11:debug AS final
 COPY --from=build /app/gomaluum /
 COPY --from=build /app/dtos/iium_2024_2025_1.json /  
-COPY --from=build /app/docs/swagger/swagger.json /  
+# COPY --from=build /app/docs/swagger/swagger.json /  
 
 ENV APP_ENV=production
-ENV OPENAPI_SPEC_PATH=/swagger.json
 
 USER nonroot:nonroot
 
