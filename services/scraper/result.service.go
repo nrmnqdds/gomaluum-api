@@ -138,6 +138,11 @@ func getResultFromSession(c *colly.Collector, cookie *string, sessionQuery *stri
 		words := strings.Fields(courseCode)
 		if words[0] == "Total" {
 			logger.Debug("cgpa usecase found:")
+			logger.Debugf("tds[0]: %v", tds[0])
+			logger.Debugf("tds[1]: %v", tds[1])
+			logger.Debugf("tds[2]: %v", tds[2])
+			logger.Debugf("tds[3]: %v", tds[3])
+
 			gpaWord := strings.Fields(courseName)
 			chr = strings.TrimSpace(gpaWord[1])
 			gpa = strings.TrimSpace(gpaWord[2])
