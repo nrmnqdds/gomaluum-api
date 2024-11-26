@@ -50,13 +50,17 @@ func StartEchoServer() {
 		if err != nil {
 			log.Fatalf("could not read swagger.json: %v", err)
 		}
-		log.Println("swaggerPath", string(swaggerPath))
+		scalarMetadataPath, err := SwaggerDocsPath.ReadFile("docs/scalar-metadata.json")
+		if err != nil {
+			log.Fatalf("could not read scalar-metadata.json: %v", err)
+		}
 
 		htmlContent, err := scalar.ApiReferenceHTML(&scalar.Options{
 			SpecContent: string(swaggerPath),
 			CustomOptions: scalar.CustomOptions{
 				PageTitle: "GoMaluum API Reference",
 			},
+			MetaData: string(scalarMetadataPath),
 			DarkMode: true,
 		})
 		if err != nil {
@@ -92,6 +96,7 @@ func StartEchoServer() {
 	g.GET("/schedule", controllers.GetScheduleHandler)
 	g.POST("/schedule", controllers.PostScheduleHandler)
 
+	// Result
 	g.GET("/result", controllers.GetResultHandler)
 	g.POST("/result", controllers.PostResultHandler)
 
