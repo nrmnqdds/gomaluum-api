@@ -11,9 +11,6 @@ definitions:
     type: object
 info:
   contact: {}
-  description: This is a simple API for Gomaluum project.
-  title: Gomaluum API
-  version: "1.0"
 paths:
   /api/ads:
     get:

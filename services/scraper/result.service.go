@@ -2,7 +2,6 @@ package scraper
 
 import (
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/lucsky/cuid"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/helpers"
-	"github.com/rung/go-safecast"
 )
 
 func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.CustomError) {
@@ -59,6 +57,18 @@ func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.
 		return nil, dtos.ErrFailedToGoToURL
 	}
 
+	// Filter out unwanted session
+	filteredQueries := make([]string, 0)
+	filteredNames := make([]string, 0)
+	for i := range sessionQueries {
+		if sessionQueries[i] != "?ses=1111/1111&sem=1" && sessionQueries[i] != "?ses=0000/0000&sem=0" {
+			filteredQueries = append(filteredQueries, sessionQueries[i])
+			filteredNames = append(filteredNames, sessionNames[i])
+		}
+	}
+	sessionQueries = filteredQueries
+	sessionNames = filteredNames
+
 	for i := range sessionQueries {
 		wg.Add(1)
 
@@ -96,174 +106,56 @@ func getResultFromSession(c *colly.Collector, cookie *string, sessionQuery *stri
 
 	url := helpers.ImaluumResultPage + *sessionQuery
 
-	var mu sync.Mutex
-	subjects := []dtos.Subject{}
+	var (
+		subjects     []dtos.Result
+		mu           sync.Mutex
+		courseCode   string
+		courseName   string
+		courseGrade  string
+		courseCredit string
+		gpa          string
+		cgpa         string
+		chr          string
+		status       string
+	)
 
 	c.OnRequest(func(r *colly.Request) {
 		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+*cookie)
 		r.Headers.Set("User-Agent", helpers.RandomString())
 	})
 
-	c.OnHTML(".box-body table.table.table-hover tr", func(e *colly.HTMLElement) {
+	c.OnHTML(".box-body table.table.table-hover tbody tr", func(e *colly.HTMLElement) {
 		tds := e.ChildTexts("td")
 
-		weekTime := []dtos.WeekTime{}
+		courseCode = strings.TrimSpace(tds[0])
 
-		if len(tds) == 0 {
-			// Skip the first row
+		courseName = strings.TrimSpace(tds[1])
+
+		courseGrade = strings.TrimSpace(tds[2])
+
+		courseCredit = strings.TrimSpace(tds[3])
+
+		words := strings.Fields(courseCode)
+		if words[0] == "Total" {
+			logger.Debug("cgpa usecase found:")
+			gpaWord := strings.Fields(courseName)
+			chr = strings.TrimSpace(gpaWord[1])
+			gpa = strings.TrimSpace(gpaWord[2])
+			status = strings.TrimSpace(gpaWord[3])
+
+			cgpaWord := strings.Fields(courseCredit)
+			cgpa = strings.TrimSpace(cgpaWord[2])
 			return
 		}
 
-		// Handles for perfect cell
-		if len(tds) == 9 {
-			courseCode := strings.TrimSpace(tds[0])
-			courseName := strings.TrimSpace(tds[1])
-
-			section, err := safecast.Atoi32(strings.TrimSpace(tds[2]))
-			if err != nil {
-				return
-			}
-
-			chr, err := strconv.ParseFloat(strings.TrimSpace(tds[3]), 32)
-			if err != nil {
-				return
-			}
-
-			// Split the days
-			_days := strings.Split(strings.Replace(strings.TrimSpace(tds[5]), " ", "", -1), "-")
-
-			// Handles weird ass day format
-			switch _days[0] {
-			case "MTW":
-				_days = []string{"M", "T", "W"}
-			case "TWTH":
-				_days = []string{"T", "W", "TH"}
-			case "MTWTH":
-				_days = []string{"M", "T", "W", "TH"}
-			case "MTWTHF":
-				_days = []string{"M", "T", "W", "TH", "F"}
-			}
-
-			for _, day := range _days {
-				dayNum := helpers.GetScheduleDays(day)
-				timeTemp := tds[6]
-
-				// `timeFullForm` refers to result time from iMaluum
-				// e.g.: 800-920 or 1000-1120
-				timeFullForm := strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1)
-
-				// in some cases, iMaluum will return "-" as time
-				// if `timeFullForm` equals `TimeSeparator`, then we skip this row
-				if timeFullForm == helpers.TimeSeparator {
-					continue
-				}
-
-				// safely split time entry
-				time := strings.Split(timeFullForm, helpers.TimeSeparator)
-
-				start := strings.TrimSpace(time[0])
-				end := strings.TrimSpace(time[1])
-
-				if len(start) == 3 {
-					start = "0" + start
-				}
-
-				if len(end) == 3 {
-					end = "0" + end
-				}
-
-				weekTime = append(weekTime, dtos.WeekTime{
-					Start: start,
-					End:   end,
-					Day:   dayNum,
-				})
-			}
-
-			venue := strings.TrimSpace(tds[7])
-			lecturer := strings.TrimSpace(tds[8])
-
-			mu.Lock()
-			subjects = append(subjects, dtos.Subject{
-				ID:         cuid.New(),
-				CourseCode: courseCode,
-				CourseName: courseName,
-				Section:    uint32(section),
-				Chr:        chr,
-				Timestamps: weekTime,
-				Venue:      venue,
-				Lecturer:   lecturer,
-			})
-			mu.Unlock()
-
-		}
-
-		// Handles for merged cell usually at time or day or venue
-		if len(tds) == 4 {
-			mu.Lock()
-			lastSubject := subjects[len(subjects)-1]
-			mu.Unlock()
-			courseCode := lastSubject.CourseCode
-			courseName := lastSubject.CourseName
-			section := lastSubject.Section
-			chr := lastSubject.Chr
-
-			// Split the days
-			_days := strings.Split(strings.Replace(strings.TrimSpace(tds[0]), " ", "", -1), "-")
-
-			// Handles weird ass day format
-			switch _days[0] {
-			case "MTW":
-				_days = []string{"M", "T", "W"}
-			case "TWTH":
-				_days = []string{"T", "W", "TH"}
-			case "MTWTH":
-				_days = []string{"M", "T", "W", "TH"}
-			case "MTWTHF":
-				_days = []string{"M", "T", "W", "TH", "F"}
-			}
-
-			for _, day := range _days {
-				dayNum := helpers.GetScheduleDays(day)
-				timeTemp := tds[1]
-				time := strings.Split(strings.Replace(strings.TrimSpace(timeTemp), " ", "", -1), "-")
-
-				if len(time) != 2 {
-					continue
-				}
-
-				start := strings.TrimSpace(time[0])
-				end := strings.TrimSpace(time[1])
-
-				if len(start) == 3 {
-					start = "0" + start
-				}
-				if len(end) == 3 {
-					end = "0" + end
-				}
-
-				weekTime = append(weekTime, dtos.WeekTime{
-					Start: start,
-					End:   end,
-					Day:   dayNum,
-				})
-			}
-
-			venue := strings.TrimSpace(tds[2])
-			lecturer := strings.TrimSpace(tds[3])
-
-			mu.Lock()
-			subjects = append(subjects, dtos.Subject{
-				ID:         cuid.Slug(),
-				CourseCode: courseCode,
-				CourseName: courseName,
-				Section:    section,
-				Chr:        chr,
-				Timestamps: weekTime,
-				Venue:      venue,
-				Lecturer:   lecturer,
-			})
-			mu.Unlock()
-		}
+		mu.Lock()
+		subjects = append(subjects, dtos.Result{
+			CourseCode:   courseCode,
+			CourseName:   courseName,
+			CourseGrade:  courseGrade,
+			CourseCredit: courseCredit,
+		})
+		mu.Unlock()
 	})
 
 	if err := c.Visit(url); err != nil {
@@ -274,6 +166,10 @@ func getResultFromSession(c *colly.Collector, cookie *string, sessionQuery *stri
 		ID:           cuid.Slug(),
 		SessionName:  *sessionName,
 		SessionQuery: *sessionQuery,
-		Result:       nil,
+		GpaValue:     gpa,
+		CgpaValue:    cgpa,
+		CreditHours:  chr,
+		Status:       status,
+		Result:       subjects,
 	}
 }
