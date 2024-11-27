@@ -25,4 +25,3 @@ USER nonroot:nonroot
 EXPOSE 1323
 
 ENTRYPOINT ["/gomaluum"]
-CMD ["-a"]

@@ -1,27 +1,19 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
-	"time"
 
-	"github.com/hibiken/asynq"
+	"github.com/cloudflare/cloudflare-go"
 	"github.com/nrmnqdds/gomaluum-api/dtos"
 	"github.com/nrmnqdds/gomaluum-api/helpers"
-	"github.com/nrmnqdds/gomaluum-api/tasks"
 )
 
 func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) {
 	jar, _ := cookiejar.New(nil)
-
-	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
-		Addr:     helpers.GetEnv("REDIS_URL"),
-		Username: helpers.GetEnv("REDIS_USERNAME"),
-		Password: helpers.GetEnv("REDIS_PASSWORD"),
-	})
-	defer asynqClient.Close()
 
 	logger, _ := helpers.NewLogger()
 	client := &http.Client{
@@ -70,20 +62,37 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 
 	cookies := client.Jar.Cookies(urlObj)
 
-	logger.Debugf("Cookies: %v", cookies)
 	for _, cookie := range cookies {
 		if cookie.Name == "MOD_AUTH_CAS" {
 
-			task, err := tasks.NewSaveToRedisTask(user.Username, user.Password)
+			// Construct a new API object using a global API key
+			// cloudflareClient, err := cloudflare.New(helpers.GetEnv("CLOUDFLARE_API_KEY"), helpers.GetEnv("CLOUDFLARE_API_EMAIL"))
+			// alternatively, you can use a scoped API token
+			cloudflareClient, err := cloudflare.NewWithAPIToken(helpers.GetEnv("CLOUDFLARE_API_TOKEN"))
 			if err != nil {
-				logger.Warnf("Failed to set user password to redis: %v", err)
+				logger.Errorf("Error initiating cloudflare client: %s", err.Error())
 			}
 
-			info, err := asynqClient.Enqueue(task, asynq.ProcessIn(1*time.Minute))
-			if err != nil {
-				logger.Warnf("could not schedule task: %v", err)
+			// Most API calls require a Context
+			ctx := context.Background()
+
+			kvEntryParams := cloudflare.WriteWorkersKVEntryParams{
+				NamespaceID: helpers.GetEnv("KV_NAMESPACE_ID"),
+				Key:         user.Username,
+				Value:       []byte(user.Password),
 			}
-			logger.Infof("enqueued task: id=%s queue=%s", info.ID, info.Queue)
+
+			kvResourceContainer := &cloudflare.ResourceContainer{
+				Level:      "accounts",
+				Identifier: helpers.GetEnv("KV_USER_ID"),
+				Type:       "account",
+			}
+
+			_, cerr := cloudflareClient.WriteWorkersKVEntry(ctx, kvResourceContainer, kvEntryParams)
+			if cerr != nil {
+				logger.Errorf("Error writing to KV: %s", cerr.Error())
+			}
+			logger.Info("Successfully wrote to KV")
 
 			return &dtos.LoginResponseDTO{
 				Username: user.Username,
