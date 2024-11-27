@@ -44,7 +44,7 @@ jobs:
           # Docker Hub Login
       - uses: docker/login-action@v3
         with:
-          registry: docker.io
+          registry: ghcr.io
           username: nrmnqdds
           password: ${{ secrets.GHCR_TOKEN }}
           # Push to the registry
