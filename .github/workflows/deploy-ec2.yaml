@@ -49,8 +49,13 @@ jobs:
           password: ${{ secrets.GHCR_TOKEN }}
           # Push to the registry
       - run: |
+          # tag slim image
           docker tag gomaluum:slim ghcr.io/nrmnqdds/gomaluum:slim
           docker push ghcr.io/nrmnqdds/gomaluum:slim
+
+          # tag latest image
+          docker tag gomaluum:latest ghcr.io/nrmnqdds/gomaluum:latest
+          docker push ghcr.io/nrmnqdds/gomaluum:latest
         # - name: Build and push
         #   uses: docker/build-push-action@v6
         #   with:
