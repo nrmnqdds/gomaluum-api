@@ -127,6 +127,12 @@ func getResultFromSession(c *colly.Collector, cookie *string, sessionQuery *stri
 	c.OnHTML(".box-body table.table.table-hover tbody tr", func(e *colly.HTMLElement) {
 		tds := e.ChildTexts("td")
 
+		// Check if tds has enough elements
+		if len(tds) < 4 {
+			logger.Debug("Row has insufficient columns, skipping...")
+			return
+		}
+
 		courseCode = strings.TrimSpace(tds[0])
 
 		courseName = strings.TrimSpace(tds[1])
@@ -135,21 +141,41 @@ func getResultFromSession(c *colly.Collector, cookie *string, sessionQuery *stri
 
 		courseCredit = strings.TrimSpace(tds[3])
 
-		words := strings.Fields(courseCode)
+		words := strings.Fields(strings.TrimSpace(tds[0]))
+		if len(words) == 0 {
+			return
+		}
+
 		if words[0] == "Total" {
-			logger.Debug("cgpa usecase found:")
+			logger.Debug("cgpa usecase found for version: %s", *sessionName)
 			logger.Debugf("tds[0]: %v", tds[0])
 			logger.Debugf("tds[1]: %v", tds[1])
 			logger.Debugf("tds[2]: %v", tds[2])
 			logger.Debugf("tds[3]: %v", tds[3])
 
-			gpaWord := strings.Fields(courseName)
-			chr = strings.TrimSpace(gpaWord[1])
-			gpa = strings.TrimSpace(gpaWord[2])
-			status = strings.TrimSpace(gpaWord[3])
+			gpaWord := strings.Fields(strings.TrimSpace(tds[1]))
+			logger.Debugf("gpaWord: %v", gpaWord)
+			logger.Error("gpaWord length is less than 4")
 
-			cgpaWord := strings.Fields(courseCredit)
-			cgpa = strings.TrimSpace(cgpaWord[2])
+			chr = "N/A"
+			gpa = "N/A"
+			status = "N/A"
+			cgpa = "N/A"
+
+			if len(gpaWord) > 1 {
+				chr = strings.TrimSpace(gpaWord[1])
+			}
+			if len(gpaWord) > 2 {
+				gpa = strings.TrimSpace(gpaWord[2])
+			}
+			if len(gpaWord) > 3 {
+				status = strings.TrimSpace(gpaWord[3])
+			}
+
+			cgpaWord := strings.Fields(strings.TrimSpace(tds[3]))
+			if len(cgpaWord) > 2 {
+				cgpa = strings.TrimSpace(cgpaWord[2])
+			}
 			return
 		}
 

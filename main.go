@@ -16,7 +16,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/nrmnqdds/gomaluum-api/controllers"
-	"golang.org/x/time/rate"
 )
 
 //go:embed docs/*
@@ -49,7 +48,7 @@ func init() {
 		Output: e.Logger.Output(),
 	}))
 
-	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(20))))
+	// e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(20))))
 
 	// This middleware is used to recover from panics anywhere in the chain, log the panic (and a stack trace), and set a status code of 500.
 	e.Use(middleware.Recover())
