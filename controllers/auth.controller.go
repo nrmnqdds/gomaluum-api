@@ -66,8 +66,22 @@ func LoginHandler(c echo.Context) error {
 	}
 
 	c.SetCookie(&http.Cookie{
-		Name:  "MOD_AUTH_CAS",
-		Value: data.Token,
+		Name:     "MOD_AUTH_CAS",
+		Value:    data.Token,
+		Path:     "/",
+		SameSite: http.SameSiteNoneMode,
+		Secure:   true,
+		// Set the cookie to expire in 1 hour
+		MaxAge: 3600,
+	})
+
+	c.SetCookie(&http.Cookie{
+		Name:     "MOD_AUTH_CAS",
+		Value:    data.Token,
+		Domain:   "iium.edu.my",
+		Path:     "/",
+		SameSite: http.SameSiteNoneMode,
+		Secure:   true,
 		// Set the cookie to expire in 1 hour
 		MaxAge: 3600,
 	})
