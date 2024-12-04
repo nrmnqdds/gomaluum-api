@@ -19,6 +19,7 @@ COPY --from=build /app/dtos/iium_2024_2025_1.json /
 # COPY --from=build /app/docs/swagger/swagger.json /  
 
 ENV APP_ENV=production
+ENV LAMBDA=true
 
 USER nonroot:nonroot
 

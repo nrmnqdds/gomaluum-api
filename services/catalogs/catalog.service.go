@@ -21,7 +21,7 @@ func CatalogScraper() (interface{}, *dtos.CustomError) {
 
 	path := filepath.Join(basepath, "dtos/iium_2024_2025_1.json")
 
-	if helpers.GetEnv("ENVIRONMENT") == "production" {
+	if os.Getenv("ENVIRONMENT") == "production" {
 		path = filepath.Join(basepath, "iium_2024_2025_1.json")
 	}
 

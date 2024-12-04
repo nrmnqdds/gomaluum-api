@@ -1,26 +1,38 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"log"
 	"net/http"
+	"os"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	echoadapter "github.com/awslabs/aws-lambda-go-api-proxy/echo"
 
 	"github.com/MarceloPetrucio/go-scalar-api-reference"
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/nrmnqdds/gomaluum-api/controllers"
-	"github.com/nrmnqdds/gomaluum-api/helpers"
 	"golang.org/x/time/rate"
 )
 
 //go:embed docs/*
 var SwaggerDocsPath embed.FS
 
+var echoLambda *echoadapter.EchoLambda
+
 func main() {
-	StartEchoServer()
+	lambda.Start(Handler)
 }
 
-func StartEchoServer() {
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error reading .env file!")
+	}
 	e := echo.New()
 
 	// CORS
@@ -95,8 +107,31 @@ func StartEchoServer() {
 	// Ads
 	g.GET("/ads", controllers.AdsHandler)
 
-	if err := e.Start(":" + helpers.GetEnv("PORT")); err != nil {
-		log.Fatalf("could not start server: %v", err)
+	isLambda := os.Getenv("LAMBDA")
+
+	if isLambda == "TRUE" {
+		// echoadapter := echoadapter.New(e)
+		//
+		// lambda.Start(echoadapter.Proxy)
+		// lambdaAdapter := &LambdaAdapter{Echo: e}
+		// lambda.Start(lambdaAdapter.Handler)
+
+		echoLambda = echoadapter.New(e)
+	} else {
+		PORT := "1323"
+
+		if os.Getenv("PORT") != "" {
+			PORT = os.Getenv("PORT")
+		}
+
+		if err := e.Start(":" + PORT); err != nil {
+			log.Fatalf("could not start server: %v", err)
+		}
+		log.Println("App Server started")
 	}
-	log.Println("App Server started")
+}
+
+func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// If no name is provided in the HTTP request body, throw an error
+	return echoLambda.ProxyWithContext(ctx, req)
 }

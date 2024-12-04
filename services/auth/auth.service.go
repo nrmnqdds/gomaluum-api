@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/cloudflare/cloudflare-go"
@@ -68,7 +69,7 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 			// Construct a new API object using a global API key
 			// cloudflareClient, err := cloudflare.New(helpers.GetEnv("CLOUDFLARE_API_KEY"), helpers.GetEnv("CLOUDFLARE_API_EMAIL"))
 			// alternatively, you can use a scoped API token
-			cloudflareClient, err := cloudflare.NewWithAPIToken(helpers.GetEnv("CLOUDFLARE_API_TOKEN"))
+			cloudflareClient, err := cloudflare.NewWithAPIToken(os.Getenv("CLOUDFLARE_API_TOKEN"))
 			if err != nil {
 				logger.Errorf("Error initiating cloudflare client: %s", err.Error())
 			}
@@ -77,14 +78,14 @@ func LoginUser(user *dtos.LoginDTO) (*dtos.LoginResponseDTO, *dtos.CustomError) 
 			ctx := context.Background()
 
 			kvEntryParams := cloudflare.WriteWorkersKVEntryParams{
-				NamespaceID: helpers.GetEnv("KV_NAMESPACE_ID"),
+				NamespaceID: os.Getenv("KV_NAMESPACE_ID"),
 				Key:         user.Username,
 				Value:       []byte(user.Password),
 			}
 
 			kvResourceContainer := &cloudflare.ResourceContainer{
 				Level:      "accounts",
-				Identifier: helpers.GetEnv("KV_USER_ID"),
+				Identifier: os.Getenv("KV_USER_ID"),
 				Type:       "account",
 			}
 
