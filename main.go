@@ -29,9 +29,11 @@ func main() {
 }
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error reading .env file!")
+	if os.Getenv("APP_ENV") == "development" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error reading .env file!")
+		}
 	}
 	e := echo.New()
 
