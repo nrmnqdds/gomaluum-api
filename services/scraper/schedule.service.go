@@ -64,7 +64,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 
 		clone := c.Clone()
 
-		go getScheduleFromSession(clone, &_cookie, &sessionQueries[i], &sessionNames[i], scheduleChan, &wg)
+		go getScheduleFromSession(clone, _cookie, sessionQueries[i], sessionNames[i], scheduleChan, &wg)
 	}
 
 	go func() {
@@ -88,19 +88,19 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 	return &schedule, nil
 }
 
-func getScheduleFromSession(c *colly.Collector, cookie *string, sessionQuery *string, sessionName *string, scheduleChan chan<- dtos.ScheduleResponse, wg *sync.WaitGroup) {
+func getScheduleFromSession(c *colly.Collector, cookie string, sessionQuery string, sessionName string, scheduleChan chan<- dtos.ScheduleResponse, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	logger, _ := helpers.NewLogger()
-	logger.Debugf("Running scraper for session: %v", *sessionName)
+	logger.Debugf("Running scraper for session: %v", sessionName)
 
-	url := helpers.ImaluumSchedulePage + *sessionQuery
+	url := helpers.ImaluumSchedulePage + sessionQuery
 
 	var mu sync.Mutex
 	subjects := []dtos.Subject{}
 
 	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+*cookie)
+		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookie)
 		r.Headers.Set("User-Agent", helpers.RandomString())
 	})
 
@@ -272,8 +272,8 @@ func getScheduleFromSession(c *colly.Collector, cookie *string, sessionQuery *st
 
 	scheduleChan <- dtos.ScheduleResponse{
 		ID:           cuid.Slug(),
-		SessionName:  *sessionName,
-		SessionQuery: *sessionQuery,
+		SessionName:  sessionName,
+		SessionQuery: sessionQuery,
 		Schedule:     subjects,
 	}
 }

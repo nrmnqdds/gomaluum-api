@@ -74,7 +74,7 @@ func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.
 
 		clone := c.Clone()
 
-		go getResultFromSession(clone, &_cookie, &sessionQueries[i], &sessionNames[i], resultChan, &wg)
+		go getResultFromSession(clone, _cookie, sessionQueries[i], sessionNames[i], resultChan, &wg)
 	}
 
 	go func() {
@@ -98,13 +98,13 @@ func ResultScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ResultResponse, *dtos.
 	return &result, nil
 }
 
-func getResultFromSession(c *colly.Collector, cookie *string, sessionQuery *string, sessionName *string, resultChan chan<- dtos.ResultResponse, wg *sync.WaitGroup) {
+func getResultFromSession(c *colly.Collector, cookie string, sessionQuery string, sessionName string, resultChan chan<- dtos.ResultResponse, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	logger, _ := helpers.NewLogger()
-	logger.Debugf("Running scraper for session: %v", *sessionName)
+	logger.Debugf("Running scraper for session: %v", sessionName)
 
-	url := helpers.ImaluumResultPage + *sessionQuery
+	url := helpers.ImaluumResultPage + sessionQuery
 
 	var (
 		subjects     []dtos.Result
@@ -120,7 +120,7 @@ func getResultFromSession(c *colly.Collector, cookie *string, sessionQuery *stri
 	)
 
 	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+*cookie)
+		r.Headers.Set("Cookie", "MOD_AUTH_CAS="+cookie)
 		r.Headers.Set("User-Agent", helpers.RandomString())
 	})
 
@@ -147,7 +147,7 @@ func getResultFromSession(c *colly.Collector, cookie *string, sessionQuery *stri
 		}
 
 		if words[0] == "Total" {
-			logger.Debug("cgpa usecase found for version: %s", *sessionName)
+			logger.Debug("cgpa usecase found for version: %s", sessionName)
 			logger.Debugf("tds[0]: %v", tds[0])
 			logger.Debugf("tds[1]: %v", tds[1])
 			logger.Debugf("tds[2]: %v", tds[2])
@@ -157,10 +157,10 @@ func getResultFromSession(c *colly.Collector, cookie *string, sessionQuery *stri
 			logger.Debugf("gpaWord: %v", gpaWord)
 			logger.Error("gpaWord length is less than 4")
 
-			chr = "N/A"
-			gpa = "N/A"
-			status = "N/A"
-			cgpa = "N/A"
+			chr = "0"
+			gpa = "0"
+			status = "0"
+			cgpa = "0"
 
 			if len(gpaWord) > 1 {
 				chr = strings.TrimSpace(gpaWord[1])
@@ -195,8 +195,8 @@ func getResultFromSession(c *colly.Collector, cookie *string, sessionQuery *stri
 
 	resultChan <- dtos.ResultResponse{
 		ID:           cuid.Slug(),
-		SessionName:  *sessionName,
-		SessionQuery: *sessionQuery,
+		SessionName:  sessionName,
+		SessionQuery: sessionQuery,
 		GpaValue:     gpa,
 		CgpaValue:    cgpa,
 		CreditHours:  chr,
