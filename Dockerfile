@@ -15,11 +15,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags="-s -w" -o /app/gomaluum main.
 # use debug so can docker exec
 FROM gcr.io/distroless/static-debian11:debug AS final
 COPY --from=build /app/gomaluum /
-COPY --from=build /app/dtos/iium_2024_2025_1.json /  
+# COPY --from=build /app/dtos/iium_2024_2025_1.json /  
 # COPY --from=build /app/docs/swagger/swagger.json /  
 
 ENV APP_ENV=production
-ENV LAMBDA=true
+ENV LAMBDA=false
 
 USER nonroot:nonroot
 

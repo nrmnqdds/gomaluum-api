@@ -5,6 +5,7 @@ import (
 	"embed"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -16,10 +17,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/nrmnqdds/gomaluum-api/controllers"
+	services "github.com/nrmnqdds/gomaluum-api/services/catalogs"
 )
 
 //go:embed docs/*
-var SwaggerDocsPath embed.FS
+var DocsPath embed.FS
 
 var echoLambda *echoadapter.EchoLambda
 
@@ -33,6 +35,7 @@ func init() {
 		if err != nil {
 			log.Fatal("Error reading .env file!")
 		}
+		log.Println("Loaded .env file")
 	}
 	e := echo.New()
 
@@ -58,11 +61,11 @@ func init() {
 	})
 
 	e.GET("/reference", func(c echo.Context) error {
-		swaggerPath, err := SwaggerDocsPath.ReadFile("docs/swagger/swagger.json")
+		swaggerPath, err := DocsPath.ReadFile("docs/swagger/swagger.json")
 		if err != nil {
 			log.Fatalf("could not read swagger.json: %v", err)
 		}
-		scalarMetadataPath, err := SwaggerDocsPath.ReadFile("docs/scalar-metadata.json")
+		scalarMetadataPath, err := DocsPath.ReadFile("docs/scalar-metadata.json")
 		if err != nil {
 			log.Fatalf("could not read scalar-metadata.json: %v", err)
 		}
@@ -103,6 +106,7 @@ func init() {
 	g.POST("/result", controllers.PostResultHandler)
 
 	// Catalog
+	services.DocsPath = DocsPath
 	g.GET("/catalog", controllers.CatalogHandler)
 
 	// Ads
