@@ -28,6 +28,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 		sessionNames   []string
 	)
 
+	// If token from POST request is empty, check existing cookie
 	if d.Token == "" {
 		cookie, err := e.Cookie("MOD_AUTH_CAS")
 		if err != nil {
@@ -38,6 +39,7 @@ func ScheduleScraper(d *dtos.ScheduleRequestProps) (*[]dtos.ScheduleResponse, *d
 		logger.Debug("Found cookie")
 		_cookie = cookie.Value
 	} else {
+		// If token from POST request is not empty, use it as cookie
 		logger.Debug("Using token from login directly as cookie")
 		_cookie = d.Token
 	}

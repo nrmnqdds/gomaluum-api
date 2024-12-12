@@ -1,15 +1,13 @@
 package main
 
 import (
-	"context"
 	"embed"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"runtime/pprof"
 
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	echoadapter "github.com/awslabs/aws-lambda-go-api-proxy/echo"
 
 	"github.com/MarceloPetrucio/go-scalar-api-reference"
@@ -26,10 +24,13 @@ var DocsPath embed.FS
 var echoLambda *echoadapter.EchoLambda
 
 func main() {
-	lambda.Start(Handler)
-}
+	f, err := os.Create("cpu.pprof")
+	if err != nil {
+		panic(err)
+	}
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
 
-func init() {
 	if os.Getenv("APP_ENV") == "development" {
 		err := godotenv.Load()
 		if err != nil {
@@ -112,31 +113,14 @@ func init() {
 	// Ads
 	g.GET("/ads", controllers.AdsHandler)
 
-	isLambda := os.Getenv("LAMBDA")
+	PORT := "1323"
 
-	if isLambda == "TRUE" {
-		// echoadapter := echoadapter.New(e)
-		//
-		// lambda.Start(echoadapter.Proxy)
-		// lambdaAdapter := &LambdaAdapter{Echo: e}
-		// lambda.Start(lambdaAdapter.Handler)
-
-		echoLambda = echoadapter.New(e)
-	} else {
-		PORT := "1323"
-
-		if os.Getenv("PORT") != "" {
-			PORT = os.Getenv("PORT")
-		}
-
-		if err := e.Start(":" + PORT); err != nil {
-			log.Fatalf("could not start server: %v", err)
-		}
-		log.Println("App Server started")
+	if os.Getenv("PORT") != "" {
+		PORT = os.Getenv("PORT")
 	}
-}
 
-func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// If no name is provided in the HTTP request body, throw an error
-	return echoLambda.ProxyWithContext(ctx, req)
+	if err := e.Start(":" + PORT); err != nil {
+		log.Fatalf("could not start server: %v", err)
+	}
+	log.Println("App Server started")
 }

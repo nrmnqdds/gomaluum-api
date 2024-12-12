@@ -56,3 +56,5 @@ dev:
 		fi; \
 	fi
 
+pprof:
+	go tool pprof -http=:8080 http://localhost:6060/debug/pprof/profile
