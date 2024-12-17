@@ -8,8 +8,6 @@ import (
 	"os"
 	"runtime/pprof"
 
-	echoadapter "github.com/awslabs/aws-lambda-go-api-proxy/echo"
-
 	"github.com/MarceloPetrucio/go-scalar-api-reference"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -21,14 +19,14 @@ import (
 //go:embed docs/*
 var DocsPath embed.FS
 
-var echoLambda *echoadapter.EchoLambda
-
 func main() {
 	f, err := os.Create("cpu.pprof")
 	if err != nil {
 		panic(err)
 	}
-	pprof.StartCPUProfile(f)
+	if err := pprof.StartCPUProfile(f); err != nil {
+		panic(err)
+	}
 	defer pprof.StopCPUProfile()
 
 	if os.Getenv("APP_ENV") == "development" {
