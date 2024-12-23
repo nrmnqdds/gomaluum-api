@@ -10,10 +10,6 @@ RUN go mod verify
 
 COPY . .
 
-RUN go mod tidy
-RUN make tailwind
-RUN make templ
-RUN make lint
 RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags="-s -w" -o /app/gomaluum main.go
 
 # use debug so can docker exec
