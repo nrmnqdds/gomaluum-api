@@ -1,5 +1,5 @@
 FROM golang:1.23.2-alpine AS build
-LABEL org.opencontainers.image.source=https://github.com/nrmnqdds/gomaluum-api
+LABEL org.opencontainers.image.source=https://github.com/nrmnqdds/gomaluum
 
 WORKDIR /app
 
@@ -10,11 +10,16 @@ RUN go mod verify
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags="-s -w" -o /app/gomaluum main.go
+# install templ version that go.mod is using
+RUN go install github.com/a-h/templ/cmd/templ@$(go list -m -f '{{ .Version }}' github.com/a-h/templ)
+RUN templ generate
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/gomaluum
 
 # use debug so can docker exec
 FROM gcr.io/distroless/static-debian11:debug AS final
 COPY --from=build /app/gomaluum /
+COPY --from=build /app/static /static
 
 ENV APP_ENV=production
 ENV PORT=1323

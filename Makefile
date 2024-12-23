@@ -88,7 +88,6 @@ templ:
 	@echo "Generating templates..."
 	@if command -v templ > /dev/null; then \
 		templ generate; \
-		tailwindcss -i ./static/css/input.css -o ./static/css/output.css; \
 	else \
 		read -p "Go's 'templ' is not installed on your machine. Do you want to install it? [Y/n] " choice; \
 		if [ "$$choice" != "n" ] && [ "$$choice" != "N" ]; then \
