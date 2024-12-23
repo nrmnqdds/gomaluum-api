@@ -1,5 +1,5 @@
 definitions:
-  dtos.LoginDTO:
+  dtos.LoginProps:
     properties:
       password:
         type: string
@@ -9,64 +9,37 @@ definitions:
     - password
     - username
     type: object
+  dtos.LoginResponseDTO:
+    properties:
+      token:
+        type: string
+      username:
+        type: string
+    type: object
 info:
-  contact: {}
+  contact:
+    email: ceo@nrmnqdds.com
+    name: Quddus
+    url: http://www.swagger.io/support
+  description: This is the API server for Gomaluum, an API that serves i-Ma'luum data
+    for ease of developer.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Gomaluum API Server
+  version: "2.0"
 paths:
-  /api/ads:
-    get:
-      consumes:
-      - application/json
-      description: SOUQ Ads
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - ads
-  /api/catalog:
-    get:
-      consumes:
-      - application/json
-      description: Get catalog
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - catalog
-  /api/login:
-    post:
-      consumes:
-      - application/json
-      description: Login to i-Ma'luum
-      parameters:
-      - description: User object
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.LoginDTO'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - login
   /api/result:
     get:
       description: Get result from i-Ma'luum
+      parameters:
+      - default: Bearer <Add access token here>
+        description: Insert your access token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -80,6 +53,13 @@ paths:
   /api/schedule:
     get:
       description: Get schedule from i-Ma'luum
+      parameters:
+      - default: Bearer <Add access token here>
+        description: Insert your access token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -90,23 +70,26 @@ paths:
             type: object
       tags:
       - scraper
+  /auth/login:
     post:
-      description: Login and get schedule from i-Ma'luum
+      consumes:
+      - application/json
+      description: Logs in the user. Save the token and use it in the Authorization
+        header for future requests.
       parameters:
-      - description: User object
+      - description: Login properties
         in: body
-        name: user
+        name: body
         required: true
         schema:
-          $ref: '#/definitions/dtos.LoginDTO'
+          $ref: '#/definitions/dtos.LoginProps'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dtos.LoginResponseDTO'
       tags:
-      - scraper
+      - auth
 swagger: "2.0"
