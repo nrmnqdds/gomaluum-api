@@ -2,8 +2,6 @@ package server
 
 import (
 	"embed"
-	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -27,7 +25,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RedirectSlashes)
 
-	r.Get("/", s.HelloWorldHandler)
+	// redirect to /reference
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/reference", http.StatusMovedPermanently)
+	})
 
 	r.Get("/reference", s.ScalarReference)
 
@@ -43,16 +44,4 @@ func (s *Server) RegisterRoutes() http.Handler {
 	})
 
 	return r
-}
-
-func (s *Server) HelloWorldHandler(w http.ResponseWriter, _ *http.Request) {
-	resp := make(map[string]string)
-	resp["message"] = "Hello World"
-
-	jsonResp, err := json.Marshal(resp)
-	if err != nil {
-		log.Fatalf("error handling JSON marshal. Err: %v", err)
-	}
-
-	_, _ = w.Write(jsonResp)
 }
