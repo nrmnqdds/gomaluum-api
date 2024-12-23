@@ -73,28 +73,21 @@ func Chain(w http.ResponseWriter, r *http.Request, template templ.Component, mid
 		StartTime: time.Now(),
 	}
 	for _, mw := range middleware {
-		err := mw(customContext, w, r)
-		if err != nil {
+		if err := mw(customContext, w, r); err != nil {
 			return
 		}
 	}
-	template.Render(customContext, w)
-	Log(customContext, w, r)
+	if err := template.Render(customContext, w); err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+	if err := Log(customContext, w, r); err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
 }
 
-func Log(ctx *CustomContext, w http.ResponseWriter, r *http.Request) error {
+func Log(ctx *CustomContext, _ http.ResponseWriter, r *http.Request) error {
 	elapsedTime := time.Since(ctx.StartTime)
 	formattedTime := time.Now().Format("2006-01-02 15:04:05")
 	fmt.Printf("[%s] [%s] [%s] [%s]\n", formattedTime, r.Method, r.URL.Path, elapsedTime)
-	return nil
-}
-
-func ParseForm(ctx *CustomContext, w http.ResponseWriter, r *http.Request) error {
-	r.ParseForm()
-	return nil
-}
-
-func ParseMultipartForm(ctx *CustomContext, w http.ResponseWriter, r *http.Request) error {
-	r.ParseMultipartForm(10 << 20)
 	return nil
 }
