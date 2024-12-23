@@ -5,6 +5,7 @@ go 1.23.2
 require (
 	aidanwoods.dev/go-paseto v1.5.3
 	github.com/MarceloPetrucio/go-scalar-api-reference v0.0.0-20240521013641-ce5d2efe0e06
+	github.com/a-h/templ v0.2.793
 	github.com/cloudflare/cloudflare-go v0.112.0
 	github.com/cristalhq/base64 v0.1.2
 	github.com/go-chi/chi/v5 v5.2.0
@@ -50,7 +51,7 @@ require (
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
-	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
+	golang.org/x/tools v0.24.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241219192143-6b3ec007d9bb // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
