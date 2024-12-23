@@ -51,8 +51,8 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 // @contact.url    http://www.swagger.io/support
 // @contact.email  ceo@nrmnqdds.com
 
-// @license.name  Apache 2.0
-// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+// @license.name  Bantown Public License
+// @license.url   https://github.com/nrmnqdds/gomaluum-api/blob/main/LICENSE.md
 func main() {
 	// Define mode flags
 	var dev bool

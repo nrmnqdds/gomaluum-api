@@ -24,8 +24,8 @@ info:
   description: This is the API server for Gomaluum, an API that serves i-Ma'luum data
     for ease of developer.
   license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
+    name: Bantown Public License
+    url: https://github.com/nrmnqdds/gomaluum-api/blob/main/LICENSE.md
   termsOfService: http://swagger.io/terms/
   title: Gomaluum API Server
   version: "2.0"

@@ -10,8 +10,8 @@
             "email": "ceo@nrmnqdds.com"
         },
         "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+            "name": "Bantown Public License",
+            "url": "https://github.com/nrmnqdds/gomaluum-api/blob/main/LICENSE.md"
         },
         "version": "2.0"
     },
