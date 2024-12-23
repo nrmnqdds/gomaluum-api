@@ -19,8 +19,8 @@ func (s *Server) GeneratePasetoToken(origin, username, originPassword string) (s
 
 	token.SetIssuedAt(time.Now())
 	token.SetNotBefore(time.Now())
-	// token.SetExpiration(time.Now().Add(time.Minute * 30)) // 30 minutes
-	token.SetExpiration(time.Now().Add(time.Minute * 1)) // 1 minutes
+	token.SetExpiration(time.Now().Add(time.Minute * 30)) // 30 minutes
+	// token.SetExpiration(time.Now().Add(time.Minute * 1)) // 1 minutes
 	token.SetIssuer("gomaluum")
 
 	// encode the base64 password

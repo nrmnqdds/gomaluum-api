@@ -9,13 +9,15 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cloudflare-go"
+	"github.com/go-faster/errors"
 	"github.com/nrmnqdds/gomaluum/internal/constants"
-	pb "github.com/nrmnqdds/gomaluum/internal/proto"
+	e "github.com/nrmnqdds/gomaluum/internal/errors"
+	"github.com/nrmnqdds/gomaluum/internal/proto"
 )
 
 // Login is a GRPC function to authenticate the user
 // Returns CAS cookie, username, and password
-func (s *Server) Login(_ context.Context, props *pb.LoginRequest) (*pb.LoginResponse, error) {
+func (s *Server) Login(_ context.Context, props *proto.LoginRequest) (*proto.LoginResponse, error) {
 	jar, _ := cookiejar.New(nil)
 
 	logger := s.log.GetLogger()
@@ -27,12 +29,7 @@ func (s *Server) Login(_ context.Context, props *pb.LoginRequest) (*pb.LoginResp
 	urlObj, err := url.Parse(constants.ImaluumPage)
 	if err != nil {
 		logger.Sugar().Errorf("Failed to parse url: %v", err)
-		resp := &pb.LoginResponse{
-			Token:    "",
-			Username: "",
-			Password: "",
-		}
-		return resp, err
+		return nil, err
 	}
 
 	formVal := url.Values{
@@ -51,12 +48,7 @@ func (s *Server) Login(_ context.Context, props *pb.LoginRequest) (*pb.LoginResp
 	respFirst, err := client.Do(reqFirst)
 	if err != nil {
 		logger.Sugar().Errorf("Failed to login first request: %v", err)
-		resp := &pb.LoginResponse{
-			Token:    "",
-			Username: "",
-			Password: "",
-		}
-		return resp, err
+		return nil, errors.Wrap(e.ErrURLParseFailed, err.Error())
 	}
 	respFirst.Body.Close()
 
@@ -71,12 +63,7 @@ func (s *Server) Login(_ context.Context, props *pb.LoginRequest) (*pb.LoginResp
 	respSecond, err := client.Do(reqSecond)
 	if err != nil {
 		logger.Sugar().Errorf("Failed to login second request: %v", err)
-		resp := &pb.LoginResponse{
-			Token:    "",
-			Username: "",
-			Password: "",
-		}
-		return resp, err
+		return nil, errors.Wrap(e.ErrURLParseFailed, err.Error())
 	}
 	respSecond.Body.Close()
 
@@ -90,7 +77,7 @@ func (s *Server) Login(_ context.Context, props *pb.LoginRequest) (*pb.LoginResp
 			// Use goroutine to avoid blocking the main thread
 			go s.SaveToKV(props.Username, props.Password)
 
-			resp := &pb.LoginResponse{
+			resp := &proto.LoginResponse{
 				Token:    cookie.Value,
 				Username: props.Username,
 				Password: props.Password,
@@ -101,12 +88,7 @@ func (s *Server) Login(_ context.Context, props *pb.LoginRequest) (*pb.LoginResp
 		}
 	}
 
-	resp := &pb.LoginResponse{
-		Token:    "",
-		Username: "",
-		Password: "",
-	}
-	return resp, err
+	return nil, errors.Wrap(e.ErrLoginFailed, "No CAS cookie found")
 }
 
 func (s *Server) SaveToKV(username, password string) {

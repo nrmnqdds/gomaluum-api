@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/nrmnqdds/gomaluum/internal/dtos"
 	pb "github.com/nrmnqdds/gomaluum/internal/proto"
 )
 
@@ -43,7 +42,7 @@ func (s *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := dtos.LoginResponseDTO{
+	result := &pb.LoginResponse{
 		Token:    newCookie,
 		Username: resp.Username,
 	}
