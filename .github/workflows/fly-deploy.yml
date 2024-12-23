@@ -11,16 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: deploy-group # optional: ensure only one action runs at a time
     steps:
-      - name: 'Checkout GitHub Action'
-        uses: actions/checkout@main
-      - uses: actions/setup-go@v5
-        with:
-          go-version: stable
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          args: --config=./.golangci.yaml --timeout=30m --verbose
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl deploy --remote-only
         env:
